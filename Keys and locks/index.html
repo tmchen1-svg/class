@@ -3,17 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>誰能整除誰？</title>
+  <title>誰能整除誰？互動教材</title>
   <style>
     :root{
-      --bg:#0f172a;
-      --card:#111827;
-      --muted:#94a3b8;
-      --text:#e5e7eb;
-      --accent:#22d3ee;
-      --good:#86efac;
-      --bad:#fca5a5;
-      --focus:#fde68a;
+      --bg:#0f172a; --card:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#22d3ee;
+      --good:#86efac; --bad:#fca5a5; --focus:#fde68a;
     }
     html,body{height:100%}
     body{
@@ -21,43 +15,35 @@
       color:var(--text); background:radial-gradient(1000px 600px at 50% -10%, #1f2937 0%, var(--bg) 60%);
     }
     .wrap{max-width:960px; margin:0 auto; padding:24px;}
-    .title{font-weight:800; font-size:clamp(22px,4vw,34px); letter-spacing:0.5px;}
+    .title{font-weight:800; font-size:clamp(22px,4vw,34px);}
     .subtitle{color:var(--muted); margin-top:4px}
     .card{background:linear-gradient(180deg, #0b1220 0%, #0a0f1a 100%); border:1px solid #1f2937; border-radius:16px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.25)}
     .section{margin-top:18px}
     .row{display:grid; gap:16px}
     @media(min-width:840px){ .row{grid-template-columns:1.1fr .9fr} }
-
     .eq{font-size:clamp(28px,6vw,48px); text-align:center; margin:6px 0 12px}
     .narration{min-height:58px; line-height:1.5; color:var(--muted)}
     .controls{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
     button{cursor:pointer; border:none; border-radius:12px; padding:10px 14px; font-weight:700; color:#0b1220; background:var(--accent)}
-    button.secondary{background:#334155; color:var(--text)}
+    button.secondary{background:#334155; color:#e5e7eb}
     button:focus{outline:3px solid var(--focus); outline-offset:2px}
 
-    /* stage */
     .stage{position:relative; height:260px; border-radius:16px; border:1px dashed #334155; display:grid; place-items:center; overflow:hidden}
     .legend{position:absolute; top:8px; left:12px; font-size:12px; color:var(--muted)}
 
-    /* key & lock containers */
     .key, .lock{position:absolute}
     .key{width:120px; height:120px; left:6%; bottom:24px; will-change:transform}
     .lock{width:180px; height:180px; right:6%; bottom:16px}
     .lock-door, .lock-shackle, .keyhole{will-change:transform}
 
-    /* 數字標籤 */
     .label{
-      position:absolute; width:100%; text-align:center;
-      left:50%; transform:translateX(-50%);
-      bottom:-10px; font-weight:800; color:#e5e7eb;
-      font-size:clamp(24px, 3.2vw, 36px);
-      pointer-events:none;
+      position:absolute; width:100%; text-align:center; left:50%; transform:translateX(-50%);
+      bottom:-10px; font-weight:800; color:#e5e7eb; font-size:clamp(24px, 3.2vw, 36px); pointer-events:none;
     }
 
     .conclusion{margin-top:10px; padding:10px 12px; border-radius:12px; background:#0b1220; border:1px solid #1f2937}
     .pill{display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; letter-spacing:.4px; margin-right:6px; background:#0f766e}
 
-    /* drag practice */
     .practice{display:grid; gap:16px}
     @media(min-width:840px){ .practice{grid-template-columns:1fr 1.2fr} }
     .items, .dropzone{background:#0b1220; border:1px solid #1f2937; border-radius:14px; padding:14px}
@@ -65,19 +51,14 @@
     .draggable{user-select:none; background:#1e293b; border:1px solid #334155; border-radius:10px; padding:10px 12px; margin:8px 0; display:flex; align-items:center; gap:8px}
     .draggable[aria-grabbed="true"]{outline:3px dashed var(--accent)}
     .drag-badge{font-size:12px; background:#0ea5e9; color:#0b1220; font-weight:800; border-radius:999px; padding:2px 8px}
-
     .zone{min-height:120px; border:2px dashed #3f4860; border-radius:12px; padding:8px}
     .zone.over{border-color:var(--focus); background:#0d1526}
     .chip{display:inline-flex; align-items:center; gap:8px; background:#0c4a6e; border:1px solid #1e40af; color:#e0f2fe; padding:6px 10px; border-radius:999px; margin:6px 6px 0 0}
-
     .hint{color:var(--muted); font-size:14px; margin-top:6px}
-    .hint.bad{color:var(--bad)}
-    .hint.good{color:var(--good)}
+    .hint.bad{color:var(--bad)} .hint.good{color:var(--good)}
 
     .toast{position:fixed; inset:auto 12px 12px auto; background:#111827; color:#e5e7eb; border:1px solid #374151; border-radius:12px; padding:10px 12px; box-shadow:0 10px 30px rgba(0,0,0,.35); opacity:0; transform:translateY(8px); transition:.25s}
     .toast.show{opacity:1; transform:translateY(0)}
-
-    /* confetti */
     .confetti{position:fixed; inset:0; pointer-events:none}
     .confetti i{position:absolute; width:8px; height:14px; background:linear-gradient(#22d3ee,#a78bfa); top:-20px; animation: fall linear forwards}
     @keyframes fall{ to{ transform:translateY(110vh) rotate(360deg) } }
@@ -113,12 +94,7 @@
             <!-- KEY (8) -->
             <div class="key" aria-hidden="true">
               <svg viewBox="0 0 120 120" width="120" height="120">
-                <defs>
-                  <linearGradient id="gk" x1="0" x2="1">
-                    <stop offset="0%" stop-color="#22d3ee"/>
-                    <stop offset="100%" stop-color="#a78bfa"/>
-                  </linearGradient>
-                </defs>
+                <defs><linearGradient id="gk" x1="0" x2="1"><stop offset="0%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient></defs>
                 <circle cx="38" cy="50" r="22" fill="url(#gk)" stroke="#0ea5e9"/>
                 <rect x="58" y="44" width="48" height="10" rx="4" fill="url(#gk)"/>
                 <rect x="88" y="44" width="10" height="18" rx="2" fill="#0ea5e9"/>
@@ -126,24 +102,13 @@
               <div class="label">8</div>
             </div>
 
-            <!-- LOCK (24) — 放大 1.5x，元素分組以利動畫 -->
+            <!-- LOCK (24) — 放大 1.5x，元件分組以便動畫 -->
             <div class="lock" aria-hidden="true">
               <svg viewBox="0 0 120 120" width="180" height="180">
-                <defs>
-                  <linearGradient id="gl" x1="0" x2="1">
-                    <stop offset="0%" stop-color="#64748b"/>
-                    <stop offset="100%" stop-color="#94a3b8"/>
-                  </linearGradient>
-                </defs>
-                <!-- body -->
+                <defs><linearGradient id="gl" x1="0" x2="1"><stop offset="0%" stop-color="#64748b"/><stop offset="100%" stop-color="#94a3b8"/></linearGradient></defs>
                 <rect x="24" y="42" width="72" height="62" rx="10" fill="url(#gl)" stroke="#475569"/>
-                <!-- door that swings -->
-                <g class="lock-door">
-                  <rect x="24" y="42" width="72" height="62" rx="10" fill="url(#gl)" opacity="0.001"/>
-                </g>
-                <!-- shackle (可動畫) -->
+                <g class="lock-door"><rect x="24" y="42" width="72" height="62" rx="10" fill="url(#gl)" opacity="0.001"/></g>
                 <path class="lock-shackle" d="M36,42 a24,24 0 0 1 48,0" fill="none" stroke="#cbd5e1" stroke-width="10"/>
-                <!-- keyhole -->
                 <circle class="keyhole" cx="60" cy="72" r="7" fill="#0b1220"/>
               </svg>
               <div class="label">24</div>
@@ -187,14 +152,31 @@
     const resetBtn = document.getElementById('reset');
     const showConclusionBtn = document.getElementById('showConclusion');
     const conclusion = document.getElementById('conclusion');
-    function showToast(msg, ms=1800){
-      const t = document.getElementById('toast');
-      t.textContent = msg; t.classList.add('show');
-      setTimeout(()=> t.classList.remove('show'), ms);
+    function showToast(msg, ms=1800){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), ms); }
+
+    // ---- 簡易音效（卡嚓）：用 Web Audio 動態合成，免外掛 ----
+    let audioCtx = null;
+    function playClick(){
+      if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      const now = audioCtx.currentTime;
+      // 兩個短脈衝：高頻 + 低頻，包絡極短，營造機械卡榫感
+      const o1 = audioCtx.createOscillator(), g1 = audioCtx.createGain();
+      o1.type='square'; o1.frequency.setValueAtTime(2400, now);
+      g1.gain.setValueAtTime(0.0001, now);
+      g1.gain.exponentialRampToValueAtTime(0.3, now+0.005);
+      g1.gain.exponentialRampToValueAtTime(0.0001, now+0.06);
+      o1.connect(g1).connect(audioCtx.destination); o1.start(now); o1.stop(now+0.08);
+
+      const o2 = audioCtx.createOscillator(), g2 = audioCtx.createGain();
+      o2.type='triangle'; o2.frequency.setValueAtTime(800, now+0.015);
+      g2.gain.setValueAtTime(0.0001, now+0.015);
+      g2.gain.exponentialRampToValueAtTime(0.2, now+0.025);
+      g2.gain.exponentialRampToValueAtTime(0.0001, now+0.12);
+      o2.connect(g2).connect(audioCtx.destination); o2.start(now+0.015); o2.stop(now+0.14);
     }
 
     // ======= Part 1：動畫（WAAPI）=======
-    playBtn.addEventListener('click', ()=>{
+    playBtn.addEventListener('click', async ()=>{
       const keyEl  = stage.querySelector('.key');
       const lockEl = stage.querySelector('.lock');
       const doorEl = stage.querySelector('.lock-door');
@@ -205,27 +187,23 @@
       [...keyEl.getAnimations(), ...doorEl.getAnimations(), ...shackleEl.getAnimations(), ...keyholeEl.getAnimations()].forEach(a=>a.cancel());
       keyEl.style.transform=''; doorEl.style.transform=''; shackleEl.style.transform=''; keyholeEl.style.transform='';
 
-      // 設定 SVG 動畫的 transform anchor（支援性良好）
-      [doorEl, shackleEl, keyholeEl].forEach(el=>{
-        el.style.transformBox = 'fill-box';
-        el.style.transformOrigin = '50% 20%'; // 門板以上方略內為軸
-      });
-      // shackle 以「上方中心」為軸
-      shackleEl.style.transformOrigin = '50% 0%';
-      // keyhole 以自身中心為軸
-      keyholeEl.style.transformOrigin = '50% 50%';
+      // 設定 transform 參考框與軸
+      [doorEl, shackleEl, keyholeEl].forEach(el=>{ el.style.transformBox='fill-box'; });
+      doorEl.style.transformOrigin='50% 20%';
+      shackleEl.style.transformOrigin='50% 0%';
+      keyholeEl.style.transformOrigin='50% 50%';
 
-      // 計算鑰匙停在鎖孔前方的水平位移
+      // 計算鑰匙→鎖孔前方的水平位移
       const kb = keyEl.getBoundingClientRect();
       const lb = lockEl.getBoundingClientRect();
-      const lockSvgWidth = lockEl.clientWidth || 180;                // 依容器寬等比
-      const keyholeCenterX = lb.left + (60/120) * lockSvgWidth;       // cx=60
+      const lockSvgWidth = lockEl.clientWidth || 180;                 // 依容器寬
+      const keyholeCenterX = lb.left + (60/120)*lockSvgWidth;         // 鎖孔 cx=60
       const keyFrontLocalX = 106;                                     // 鑰匙前端
       const keyFrontDocX = kb.left + keyFrontLocalX;
-      const gap = 4;                                                  // 不穿過鎖孔
+      const gap = 4;
       const dx = (keyholeCenterX - gap) - keyFrontDocX;
 
-      // 鑰匙水平直線
+      // 鑰匙水平直線（2.6s）
       const keyAnim = keyEl.animate(
         [{ transform:'translate(0,0)' }, { transform:`translate(${dx}px, 0)` }],
         { duration: 2600, easing: 'linear', fill: 'forwards' }
@@ -234,37 +212,32 @@
       narration.textContent = '我們把「能整除」想像成「能打開」！鑰匙(8) 緩慢地直直飛到鎖孔前方……';
       showToast('播放：鑰匙前往鎖孔');
 
-      // 到達後：門板外掀 + 鎖弓上抬 + 鎖孔點頭
-      keyAnim.finished.then(()=>{
-        // 門板開啟（外掀）
+      try{
+        await keyAnim.finished;               // 等鑰匙抵達
+        await new Promise(r=>setTimeout(r,300)); // 再停 0.3 秒
+
+        // 播放卡嚓音
+        playClick();
+
+        // 門板開啟
         doorEl.animate(
           [{ transform:'rotate(0deg)' }, { transform:'rotate(-26deg)' }],
           { duration: 900, easing: 'ease-out', fill: 'forwards' }
         );
-
         // 鎖弓上抬 + 微彈回
         shackleEl.animate(
-          [
-            { transform: 'translateY(0px)' },
-            { transform: 'translateY(-18px)' },
-            { transform: 'translateY(-14px)' } // 輕微回彈
-          ],
+          [{ transform:'translateY(0px)' }, { transform:'translateY(-18px)' }, { transform:'translateY(-14px)' }],
           { duration: 700, easing: 'ease-out', fill: 'forwards' }
         );
-
-        // 鎖孔小小點頭（旋轉+縮放）做回饋
+        // 鎖孔點頭
         keyholeEl.animate(
-          [
-            { transform:'rotate(0deg) scale(1)' },
-            { transform:'rotate(-8deg) scale(1.08)' },
-            { transform:'rotate(0deg) scale(1)' }
-          ],
+          [{ transform:'rotate(0deg) scale(1)' }, { transform:'rotate(-8deg) scale(1.08)' }, { transform:'rotate(0deg) scale(1)' }],
           { duration: 500, easing: 'ease-out', fill: 'forwards' }
         );
 
-        narration.textContent = '鎖已打開！因此：8 能整除 24。';
+        narration.textContent = '卡嚓！鎖已打開，因此：8 能整除 24。';
         showToast('鎖已打開！8 能整除 24');
-      }).catch(()=>{});
+      }catch(e){ /* 使用者中途重置就忽略 */ }
     });
 
     resetBtn.addEventListener('click', ()=>{
@@ -300,34 +273,26 @@
 
     function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
     function buildOption(letter, text, ans){
-      const d=document.createElement('div');
-      d.className='draggable'; d.draggable=true; d.dataset.answer=ans;
+      const d=document.createElement('div'); d.className='draggable'; d.draggable=true; d.dataset.answer=ans;
       d.innerHTML = `<span class="drag-badge">${letter}</span>${text}`;
-      d.addEventListener('dragstart', handleDragStart);
-      d.addEventListener('dragend', handleDragEnd);
+      d.addEventListener('dragstart', handleDragStart); d.addEventListener('dragend', handleDragEnd);
       return d;
     }
     function populatePractice(){
       itemsBox.querySelectorAll('.draggable').forEach(n=>n.remove());
       zone.innerHTML = '';
       updateHint(true);
-
-      const pairs = shuffle([...PAIRS_BANK]).slice(0,2); // 抽 2 組
+      const pairs = shuffle([...PAIRS_BANK]).slice(0,2);
       const letters = ['A','B','C','D'];
       const opts = [];
-      pairs.forEach(([s,b])=>{
-        opts.push(['', `${s} 能整除 ${b}`, 'good']);
-        opts.push(['', `${b} 能整除 ${s}`, 'bad']);
-      });
+      pairs.forEach(([s,b])=>{ opts.push(['', `${s} 能整除 ${b}`, 'good']); opts.push(['', `${b} 能整除 ${s}`, 'bad']); });
       shuffle(opts).forEach((o,i)=>{ o[0]=letters[i]; itemsBox.insertBefore(buildOption(...o), document.getElementById('hintList')); });
     }
 
     let dragSrc = null;
     function handleDragStart(e){
-      dragSrc = this;
-      this.setAttribute('aria-grabbed', 'true');
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', this.textContent.trim());
+      dragSrc = this; this.setAttribute('aria-grabbed','true');
+      e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', this.textContent.trim());
     }
     function handleDragEnd(){ this.removeAttribute('aria-grabbed'); }
 
@@ -336,24 +301,17 @@
     zone.addEventListener('drop', e=>{
       e.preventDefault(); zone.classList.remove('over');
       if(!dragSrc) return;
-      const good = dragSrc.dataset.answer === 'good';
-      const chip = document.createElement('span');
-      chip.className = 'chip';
-      chip.dataset.answer = dragSrc.dataset.answer;
+      const good = dragSrc.dataset.answer==='good';
+      const chip = document.createElement('span'); chip.className='chip'; chip.dataset.answer=dragSrc.dataset.answer;
       chip.innerHTML = dragSrc.innerHTML + '<button aria-label="移除" style="all:unset; cursor:pointer; font-weight:900"> ×</button>';
-      zone.appendChild(chip);
-      dragSrc.remove();
+      zone.appendChild(chip); dragSrc.remove();
       chip.querySelector('button').addEventListener('click', ()=>{
-        const text = chip.textContent.replace(' ×','');
-        const back = buildOption('', text, chip.dataset.answer);
+        const text = chip.textContent.replace(' ×',''); const back = buildOption('', text, chip.dataset.answer);
         const nextLetter = String.fromCharCode(65 + itemsBox.querySelectorAll('.draggable').length);
         back.querySelector('.drag-badge').textContent = nextLetter;
-        itemsBox.insertBefore(back, document.getElementById('hintList'));
-        chip.remove();
-        updateHint();
+        itemsBox.insertBefore(back, document.getElementById('hintList')); chip.remove(); updateHint();
       });
-      showToast(good ? '✅ 放對了！' : '❌ 這句不對喔');
-      updateHint();
+      showToast(good ? '✅ 放對了！' : '❌ 這句不對喔'); updateHint();
     });
 
     function updateHint(reset=false){
@@ -361,10 +319,10 @@
       const correct = placed.filter(c=> c.dataset.answer==='good').length;
       const wrong = placed.filter(c=> c.dataset.answer==='bad').length;
       hintZone.className = 'hint';
-      if(reset){ hintZone.textContent = '需放入 2 個正確句子'; return; }
-      if(correct===2 && wrong===0){ hintZone.textContent = '太棒了！已放入 2 個正確句子。按下「檢查答案」完成！'; hintZone.classList.add('good'); }
-      else if(wrong>0){ hintZone.textContent = '想想看，是鑰匙(小)打開鎖(大)嗎？有錯的句子需要移除喔！'; hintZone.classList.add('bad'); }
-      else { hintZone.textContent = `需放入 2 個正確句子（目前：正確 ${correct} 個）`; }
+      if(reset){ hintZone.textContent='需放入 2 個正確句子'; return; }
+      if(correct===2 && wrong===0){ hintZone.textContent='太棒了！已放入 2 個正確句子。按下「檢查答案」完成！'; hintZone.classList.add('good'); }
+      else if(wrong>0){ hintZone.textContent='想想看，是鑰匙(小)打開鎖(大)嗎？有錯的句子需要移除喔！'; hintZone.classList.add('bad'); }
+      else{ hintZone.textContent=`需放入 2 個正確句子（目前：正確 ${correct} 個）`; }
     }
 
     checkBtn.addEventListener('click', ()=>{
@@ -372,25 +330,14 @@
       const correct = placed.filter(c=> c.dataset.answer==='good').length;
       const wrong = placed.filter(c=> c.dataset.answer==='bad').length;
       if(correct===2 && wrong===0){ celebrate(); showToast('答對了！小(除數) → 整除 → 大(被除數)'); }
-      else { showToast('還沒完全正確，請依「鑰匙開鎖」原則再想想！', 2200); }
+      else{ showToast('還沒完全正確，請依「鑰匙開鎖」原則再想想！', 2200); }
     });
 
-    resetPracticeBtn.addEventListener('click', ()=>{
-      populatePractice();
-      showToast('已重置練習（重新抽題）');
-    });
+    resetPracticeBtn.addEventListener('click', ()=>{ populatePractice(); showToast('已重置練習（重新抽題）'); });
 
     function celebrate(){
-      const c = document.getElementById('confetti');
-      c.innerHTML = '';
-      const n = 60;
-      for(let i=0;i<n;i++){
-        const s = document.createElement('i');
-        s.style.left = Math.random()*100 + 'vw';
-        s.style.animationDuration = (1.2 + Math.random()*1.2) + 's';
-        s.style.opacity = 0.6 + Math.random()*0.4;
-        c.appendChild(s);
-      }
+      const c=document.getElementById('confetti'); c.innerHTML=''; const n=60;
+      for(let i=0;i<n;i++){ const s=document.createElement('i'); s.style.left=Math.random()*100+'vw'; s.style.animationDuration=(1.2+Math.random()*1.2)+'s'; s.style.opacity=0.6+Math.random()*0.4; c.appendChild(s); }
       setTimeout(()=> c.innerHTML='', 1800);
     }
 
@@ -399,4 +346,3 @@
   </script>
 </body>
 </html>
-
