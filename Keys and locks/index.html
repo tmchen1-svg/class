@@ -43,13 +43,13 @@
     .key, .lock{position:absolute}
     .key{width:120px; height:120px; left:6%; bottom:24px; will-change:transform}
     .lock{width:180px; height:180px; right:6%; bottom:16px}
-    .lock-door{will-change:transform}
+    .lock-door, .lock-shackle, .keyhole{will-change:transform}
 
     /* 數字標籤 */
     .label{
       position:absolute; width:100%; text-align:center;
       left:50%; transform:translateX(-50%);
-      bottom:-10px; font-weight:800; color:var(--text);
+      bottom:-10px; font-weight:800; color:#e5e7eb;
       font-size:clamp(24px, 3.2vw, 36px);
       pointer-events:none;
     }
@@ -126,7 +126,7 @@
               <div class="label">8</div>
             </div>
 
-            <!-- LOCK (24) — 放大 1.5x -->
+            <!-- LOCK (24) — 放大 1.5x，元素分組以利動畫 -->
             <div class="lock" aria-hidden="true">
               <svg viewBox="0 0 120 120" width="180" height="180">
                 <defs>
@@ -135,13 +135,16 @@
                     <stop offset="100%" stop-color="#94a3b8"/>
                   </linearGradient>
                 </defs>
+                <!-- body -->
                 <rect x="24" y="42" width="72" height="62" rx="10" fill="url(#gl)" stroke="#475569"/>
+                <!-- door that swings -->
                 <g class="lock-door">
                   <rect x="24" y="42" width="72" height="62" rx="10" fill="url(#gl)" opacity="0.001"/>
                 </g>
-                <path d="M36,42 a24,24 0 0 1 48,0" fill="none" stroke="#cbd5e1" stroke-width="10"/>
-                <!-- keyhole: cx=60, cy=72 -->
-                <circle cx="60" cy="72" r="7" fill="#0b1220"/>
+                <!-- shackle (可動畫) -->
+                <path class="lock-shackle" d="M36,42 a24,24 0 0 1 48,0" fill="none" stroke="#cbd5e1" stroke-width="10"/>
+                <!-- keyhole -->
+                <circle class="keyhole" cx="60" cy="72" r="7" fill="#0b1220"/>
               </svg>
               <div class="label">24</div>
             </div>
@@ -177,7 +180,7 @@
   </div>
 
   <script>
-    // ======= 小工具 =======
+    // ======= 共用 =======
     const stage = document.getElementById('stage');
     const narration = document.getElementById('narration');
     const playBtn = document.getElementById('play');
@@ -190,50 +193,87 @@
       setTimeout(()=> t.classList.remove('show'), ms);
     }
 
-    // ======= Part 1：用 WAAPI 直接開啟動畫 =======
+    // ======= Part 1：動畫（WAAPI）=======
     playBtn.addEventListener('click', ()=>{
       const keyEl  = stage.querySelector('.key');
       const lockEl = stage.querySelector('.lock');
       const doorEl = stage.querySelector('.lock-door');
+      const shackleEl = stage.querySelector('.lock-shackle');
+      const keyholeEl = stage.querySelector('.keyhole');
 
-      // 先取消舊動畫 & 還原 transform
-      [...keyEl.getAnimations(), ...doorEl.getAnimations()].forEach(a=>a.cancel());
-      keyEl.style.transform = ''; doorEl.style.transform='';
+      // 取消舊動畫 & 還原 transform
+      [...keyEl.getAnimations(), ...doorEl.getAnimations(), ...shackleEl.getAnimations(), ...keyholeEl.getAnimations()].forEach(a=>a.cancel());
+      keyEl.style.transform=''; doorEl.style.transform=''; shackleEl.style.transform=''; keyholeEl.style.transform='';
 
-      // 計算停在鎖孔前方的水平位移量
+      // 設定 SVG 動畫的 transform anchor（支援性良好）
+      [doorEl, shackleEl, keyholeEl].forEach(el=>{
+        el.style.transformBox = 'fill-box';
+        el.style.transformOrigin = '50% 20%'; // 門板以上方略內為軸
+      });
+      // shackle 以「上方中心」為軸
+      shackleEl.style.transformOrigin = '50% 0%';
+      // keyhole 以自身中心為軸
+      keyholeEl.style.transformOrigin = '50% 50%';
+
+      // 計算鑰匙停在鎖孔前方的水平位移
       const kb = keyEl.getBoundingClientRect();
       const lb = lockEl.getBoundingClientRect();
-
-      const lockSvgWidth = lockEl.clientWidth || 180;           // 以容器寬做比例
-      const keyholeCenterX = lb.left + (60/120) * lockSvgWidth;  // cx=60 (viewBox 120)
-      const keyFrontLocalX = 106;                                // 鑰匙前端（原 SVG 右緣）
+      const lockSvgWidth = lockEl.clientWidth || 180;                // 依容器寬等比
+      const keyholeCenterX = lb.left + (60/120) * lockSvgWidth;       // cx=60
+      const keyFrontLocalX = 106;                                     // 鑰匙前端
       const keyFrontDocX = kb.left + keyFrontLocalX;
-      const gap = 4;                                             // 不穿過鎖孔
+      const gap = 4;                                                  // 不穿過鎖孔
       const dx = (keyholeCenterX - gap) - keyFrontDocX;
 
-      // 鑰匙水平直線移動
+      // 鑰匙水平直線
       const keyAnim = keyEl.animate(
         [{ transform:'translate(0,0)' }, { transform:`translate(${dx}px, 0)` }],
         { duration: 2600, easing: 'linear', fill: 'forwards' }
       );
 
-      narration.textContent = '我們把「能整除」想像成「能打開」！鑰匙(8) 緩慢地直直飛到鎖孔前方，然後打開鎖(24)。';
-      showToast('播放：鑰匙停在鎖孔前');
+      narration.textContent = '我們把「能整除」想像成「能打開」！鑰匙(8) 緩慢地直直飛到鎖孔前方……';
+      showToast('播放：鑰匙前往鎖孔');
 
-      // 鑰匙抵達後再開門
+      // 到達後：門板外掀 + 鎖弓上抬 + 鎖孔點頭
       keyAnim.finished.then(()=>{
+        // 門板開啟（外掀）
         doorEl.animate(
           [{ transform:'rotate(0deg)' }, { transform:'rotate(-26deg)' }],
           { duration: 900, easing: 'ease-out', fill: 'forwards' }
         );
-      }).catch(()=>{}); // 使用者快速重置時避免報錯
+
+        // 鎖弓上抬 + 微彈回
+        shackleEl.animate(
+          [
+            { transform: 'translateY(0px)' },
+            { transform: 'translateY(-18px)' },
+            { transform: 'translateY(-14px)' } // 輕微回彈
+          ],
+          { duration: 700, easing: 'ease-out', fill: 'forwards' }
+        );
+
+        // 鎖孔小小點頭（旋轉+縮放）做回饋
+        keyholeEl.animate(
+          [
+            { transform:'rotate(0deg) scale(1)' },
+            { transform:'rotate(-8deg) scale(1.08)' },
+            { transform:'rotate(0deg) scale(1)' }
+          ],
+          { duration: 500, easing: 'ease-out', fill: 'forwards' }
+        );
+
+        narration.textContent = '鎖已打開！因此：8 能整除 24。';
+        showToast('鎖已打開！8 能整除 24');
+      }).catch(()=>{});
     });
 
     resetBtn.addEventListener('click', ()=>{
       const keyEl  = stage.querySelector('.key');
       const doorEl = stage.querySelector('.lock-door');
-      [...keyEl.getAnimations(), ...doorEl.getAnimations()].forEach(a=>a.cancel());
-      keyEl.style.transform = ''; doorEl.style.transform = '';
+      const shackleEl = stage.querySelector('.lock-shackle');
+      const keyholeEl = stage.querySelector('.keyhole');
+      [...keyEl.getAnimations(), ...doorEl.getAnimations(), ...shackleEl.getAnimations(), ...keyholeEl.getAnimations()].forEach(a=>a.cancel());
+      keyEl.style.transform=''; doorEl.style.transform=''; shackleEl.style.transform=''; keyholeEl.style.transform='';
       narration.textContent = '我們都知道 24 ÷ 8 = 3，而且剛好分完。但到底該說「8 能整除 24」，還是「24 能整除 8」呢？';
       conclusion.hidden = true;
     });
