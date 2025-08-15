@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>整除小挑戰 (10題結算版)</title>
+    <style>
+        /* CSS 樣式 (新增 mid-buttons 的樣式) */
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f7ff;
+        }
+        #game-container {
+            width: 90%;
+            max-width: 500px;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        h1 {
+            color: #0056b3;
+        }
+        h2 {
+            font-size: 2em;
+            color: #333;
+            margin: 20px 0;
+            min-height: 80px;
+        }
+        #answer-buttons, #mid-buttons { /* [修改] */
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 15px 20px;
+            font-size: 1.2em;
+            border: 2px solid #007bff;
+            border-radius: 10px;
+            background-color: white;
+            color: #007bff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn:hover:not(:disabled) {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        #feedback {
+            margin-top: 20px;
+            font-size: 1.5em;
+            font-weight: bold;
+            height: 30px;
+        }
+        .feedback-correct {
+            color: #28a745;
+        }
+        .feedback-incorrect {
+            color: #dc3545;
+        }
+        #score {
+            font-size: 1.2em;
+            color: #666;
+        }
+        #start-button, #restart-button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        #start-button:hover, #restart-button:hover {
+            background-color: #218838;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="start-screen">
+            <h1>整除小挑戰</h1>
+            <p>判斷看看，前面的數字能不能整除後面的數字喔！</p>
+            <button id="start-button">開始遊戲</button>
+        </div>
+
+        <div id="quiz-screen" class="hidden">
+            <div id="score">分數：0</div>
+            <h2 id="question-text"></h2>
+            <div id="answer-buttons">
+                <button class="btn" id="yes-button">能整除 (是)</button>
+                <button class="btn" id="no-button">不能整除 (否)</button>
+            </div>
+            <div id="feedback"></div>
+        </div>
+        
+        <div id="mid-screen" class="hidden">
+            <h1>中場休息！</h1>
+            <h2 id="mid-score"></h2>
+            <p>要繼續挑戰，還是先到這裡呢？</p>
+            <div id="mid-buttons">
+                <button class="btn" id="continue-button">繼續挑戰</button>
+                <button class="btn" id="end-game-button">結束遊戲</button>
+            </div>
+        </div>
+
+        <div id="end-screen" class="hidden">
+            <h1>遊戲結束！</h1>
+            <h2 id="final-score"></h2>
+            <button id="restart-button">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript 程式碼
+        // 1. 抓取所有需要的畫面元素
+        const startScreen = document.getElementById('start-screen');
+        const quizScreen = document.getElementById('quiz-screen');
+        const endScreen = document.getElementById('end-screen');
+        const midScreen = document.getElementById('mid-screen'); // [新增]
+        
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+        const yesButton = document.getElementById('yes-button');
+        const noButton = document.getElementById('no-button');
+        const answerButtons = [yesButton, noButton];
+        const continueButton = document.getElementById('continue-button'); // [新增]
+        const endGameButton = document.getElementById('end-game-button'); // [新增]
+
+        const questionText = document.getElementById('question-text');
+        const scoreText = document.getElementById('score');
+        const feedbackText = document.getElementById('feedback');
+        const finalScoreText = document.getElementById('final-score');
+        const midScoreText = document.getElementById('mid-score'); // [新增]
+
+        // 2. 建立我們的題庫 (擴充到超過10題)
+        const questions = [
+            { question: "8 能整除 72 嗎？", answer: true },   // 1
+            { question: "7 能整除 45 嗎？", answer: false },  // 2
+            { question: "15 能整除 60 嗎？", answer: true },  // 3
+            { question: "9 能整除 91 嗎？", answer: false },  // 4
+            { question: "1 能整除 100 嗎？", answer: true }, // 5
+            { question: "6 能整除 40 嗎？", answer: false },  // 6
+            { question: "10 能整除 100 嗎？", answer: true }, // 7
+            { question: "5 能整除 82 嗎？", answer: false },  // 8
+            { question: "4 能整除 68 嗎？", answer: true },   // 9
+            { question: "10 能整除 205 嗎？", answer: false },// 10 -> 這裡會觸發結算
+            { question: "3 能整除 93 嗎？", answer: true },   // 11
+            { question: "11 能整除 121 嗎？", answer: true }, // 12
+            { question: "2 能整除 111 嗎？", answer: false },  // 13
+            { question: "12 能整除 2 嗎？", answer: false },  // 14
+            { question: "25 能整除 5 嗎？", answer: false },  // 15
+            { question: "32 能整除 4 嗎？", answer: false },  // 16
+            { question: "40 能整除 10 嗎？", answer: false },  // 17
+            { question: "27 能整除 3 嗎？", answer: false },  // 18
+            { question: "50 能整除 5 嗎？", answer: false },  // 19
+            { question: "12 能整除 3 嗎？", answer: false },  // 20
+            { question: "2 能整除 100 嗎？", answer: true },  // 21
+            { question: "2 能整除 14 嗎？", answer: true },  // 22
+            { question: "3 能整除 39 嗎？", answer: true },  // 23
+            { question: "4 能整除 28 嗎？", answer: true },  // 24
+            { question: "5 能整除 95 嗎？", answer: true },  // 25
+            { question: "6 能整除 42 嗎？", answer: true },  // 26
+            { question: "7 能整除 63 嗎？", answer: true },  // 27
+            { question: "8 能整除 48 嗎？", answer: true },  // 28
+            { question: "8 能整除 42 嗎？", answer: false },  // 29
+            { question: "7 能整除 36 嗎？", answer: false },  // 30
+            { question: "6 能整除 32 嗎？", answer: false },  // 31
+            { question: "5 能整除 12 嗎？", answer: false },  // 32
+            { question: "4 能整除 42 嗎？", answer: false },  // 33
+            { question: "3 能整除 35 嗎？", answer: false },  // 34
+            { question: "2 能整除 31 嗎？", answer: false },  // 35
+            { question: "1 能整除 12 嗎？", answer: false },  // 36
+
+        ];
+
+        let currentQuestionIndex;
+        let score;
+
+        // 3. 設定按鈕的功能
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', startGame);
+        yesButton.addEventListener('click', () => selectAnswer(true));
+        noButton.addEventListener('click', () => selectAnswer(false));
+        continueButton.addEventListener('click', continueGame); // [新增]
+        endGameButton.addEventListener('click', endGame);       // [新增]
+
+
+        // 4. 遊戲主要功能的程式碼
+        function startGame() {
+            currentQuestionIndex = 0;
+            score = 0;
+            
+            shuffleArray(questions); // 每次開始都隨機洗牌
+
+            startScreen.classList.add('hidden');
+            endScreen.classList.add('hidden');
+            midScreen.classList.add('hidden'); // [新增]
+            quizScreen.classList.remove('hidden');
+
+            updateScoreText();
+            showNextQuestion();
+        }
+
+        // [新增] 更新分數顯示的函式
+        function updateScoreText(){
+            scoreText.innerText = `進度：${currentQuestionIndex}/${questions.length} | 分數：${score}`;
+        }
+
+        // [修改] 處理答案的核心邏輯
+        function selectAnswer(userAnswer) {
+            answerButtons.forEach(button => button.disabled = true);
+            const correctAnswer = questions[currentQuestionIndex].answer;
+            
+            if (userAnswer === correctAnswer) {
+                score++;
+                feedbackText.innerText = "答對了！";
+                feedbackText.className = "feedback-correct";
+            } else {
+                feedbackText.innerText = "答錯了！";
+                feedbackText.className = "feedback-incorrect";
+            }
+            
+            currentQuestionIndex++;
+            updateScoreText();
+            
+            setTimeout(() => {
+                // 檢查是否還有題目
+                if (currentQuestionIndex >= questions.length) {
+                    endGame();
+                // 檢查是否剛好答完第10題 (或其他倍數)
+                } else if (currentQuestionIndex > 0 && currentQuestionIndex % 10 === 0) {
+                    showMidScreen();
+                // 繼續下一題
+                } else {
+                    showNextQuestion();
+                }
+            }, 1200);
+        }
+        
+        // [新增] 顯示中場休息畫面的函式
+        function showMidScreen() {
+            quizScreen.classList.add('hidden');
+            midScreen.classList.remove('hidden');
+            midScoreText.innerText = `您已完成 ${currentQuestionIndex} 題，目前得分 ${score} 分！`;
+        }
+
+        // [新增] 繼續遊戲的函式
+        function continueGame() {
+            midScreen.classList.add('hidden');
+            quizScreen.classList.remove('hidden');
+            showNextQuestion();
+        }
+
+
+        function showNextQuestion() {
+            feedbackText.innerText = "";
+            feedbackText.className = "";
+            answerButtons.forEach(button => button.disabled = false);
+            questionText.innerText = questions[currentQuestionIndex].question;
+        }
+
+        function endGame() {
+            quizScreen.classList.add('hidden');
+            midScreen.classList.add('hidden'); // [新增]
+            endScreen.classList.remove('hidden');
+            finalScoreText.innerText = `你總共答對了 ${score} / ${currentQuestionIndex} 題！`; // [修改]
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+    </script>
+</body>
+</html>
