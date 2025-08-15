@@ -1,0 +1,378 @@
+太好了！下面是一貼即用的**完整 HTML**，已改成「鑰匙(8) 緩慢直線飛行，並**精準停在鎖孔正前方**」。
+做法：播放時即時計算鎖孔中心位置與鑰匙前端位置，設定水平位移量 `--dx`，確保不同螢幕與縮放都能準確停點。鎖門的開啟動畫也改成在鑰匙抵達後才啟動。
+
+> 直接複製存成 `index.html` 打開即可。
+
+```html
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>誰能整除誰？互動微教材</title>
+  <style>
+    :root{
+      --bg:#0f172a;          /* slate-900 */
+      --card:#111827;        /* gray-900 */
+      --muted:#94a3b8;       /* slate-400 */
+      --text:#e5e7eb;        /* gray-200 */
+      --accent:#22d3ee;      /* cyan-400 */
+      --good:#86efac;        /* green-300 */
+      --bad:#fca5a5;         /* red-300 */
+      --focus:#fde68a;       /* amber-200 */
+      --dx: 340px;           /* 會在 JS 播放時計算覆蓋 */
+    }
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "Helvetica Neue", Arial,"Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text); background:radial-gradient(1000px 600px at 50% -10%, #1f2937 0%, var(--bg) 60%);
+    }
+    .wrap{max-width:960px; margin:0 auto; padding:24px;}
+    .title{font-weight:800; font-size:clamp(22px,4vw,34px); letter-spacing:0.5px;}
+    .subtitle{color:var(--muted); margin-top:4px}
+    .card{background:linear-gradient(180deg, #0b1220 0%, #0a0f1a 100%); border:1px solid #1f2937; border-radius:16px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .section{margin-top:18px}
+    .row{display:grid; gap:16px}
+    @media(min-width:840px){ .row{grid-template-columns:1.1fr .9fr} }
+
+    /* eq & narration */
+    .eq{font-size:clamp(28px,6vw,48px); text-align:center; margin:6px 0 12px}
+    .narration{min-height:58px; line-height:1.5; color:var(--muted)}
+    .controls{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+    button{cursor:pointer; border:none; border-radius:12px; padding:10px 14px; font-weight:700; color:#0b1220; background:var(--accent)}
+    button.secondary{background:#334155; color:var(--text)}
+    button:focus{outline:3px solid var(--focus); outline-offset:2px}
+
+    /* stage */
+    .stage{position:relative; height:240px; border-radius:16px; border:1px dashed #334155; display:grid; place-items:center; overflow:hidden}
+    .legend{position:absolute; top:8px; left:12px; font-size:12px; color:var(--muted)}
+
+    /* key & lock containers */
+    .key, .lock{position:absolute; width:120px; height:120px}
+    .key{left:6%; bottom:24px}
+    .lock{right:6%; bottom:24px}
+
+    /* 放大數字標籤 */
+    .label{
+      position:absolute; width:120px; text-align:center;
+      left:50%; transform:translateX(-50%);
+      bottom:-6px; font-weight:800; color:var(--text);
+      font-size:clamp(24px, 3.2vw, 36px);
+    }
+
+    /* 鑰匙水平直線飛行，速度放慢；終點由 --dx 控制 */
+    .animate .key{ animation: fly 2.6s linear forwards }
+    @keyframes fly{
+      from{ transform:translate(0,0) rotate(0deg) }
+      to{   transform:translateX(var(--dx)) rotate(0deg) }
+    }
+
+    /* 鎖門在鑰匙抵達後才開啟（延遲 2.6s） */
+    .animate .lock-door{ transform-origin: 50% 20%; animation: openDoor 0.9s 2.6s ease-out forwards }
+    @keyframes openDoor{ from{ transform:rotate(0deg) } to{ transform:rotate(-26deg) }}
+
+    .conclusion{margin-top:10px; padding:10px 12px; border-radius:12px; background:#0b1220; border:1px solid #1f2937}
+    .pill{display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; letter-spacing:.4px; margin-right:6px; background:#0f766e}
+
+    /* drag practice */
+    .practice{display:grid; gap:16px}
+    @media(min-width:840px){ .practice{grid-template-columns:1fr 1.2fr} }
+    .items, .dropzone{background:#0b1220; border:1px solid #1f2937; border-radius:14px; padding:14px}
+    .items h4, .dropzone h4{margin:0 0 8px; color:var(--muted)}
+    .draggable{user-select:none; background:#1e293b; border:1px solid #334155; border-radius:10px; padding:10px 12px; margin:8px 0; display:flex; align-items:center; gap:8px}
+    .draggable[aria-grabbed="true"]{outline:3px dashed var(--accent)}
+    .drag-badge{font-size:12px; background:#0ea5e9; color:#0b1220; font-weight:800; border-radius:999px; padding:2px 8px}
+
+    .zone{min-height:120px; border:2px dashed #3f4860; border-radius:12px; padding:8px}
+    .zone.over{border-color:var(--focus); background:#0d1526}
+    .chip{display:inline-flex; align-items:center; gap:8px; background:#0c4a6e; border:1px solid #1e40af; color:#e0f2fe; padding:6px 10px; border-radius:999px; margin:6px 6px 0 0}
+
+    .hint{color:var(--muted); font-size:14px; margin-top:6px}
+    .hint.bad{color:var(--bad)}
+    .hint.good{color:var(--good)}
+
+    .toast{position:fixed; inset:auto 12px 12px auto; background:#111827; color:#e5e7eb; border:1px solid #374151; border-radius:12px; padding:10px 12px; box-shadow:0 10px 30px rgba(0,0,0,.35); opacity:0; transform:translateY(8px); transition:.25s}
+    .toast.show{opacity:1; transform:translateY(0)}
+
+    /* confetti (simple) */
+    .confetti{position:fixed; inset:0; pointer-events:none}
+    .confetti i{position:absolute; width:8px; height:14px; background:linear-gradient(#22d3ee,#a78bfa); top:-20px; animation: fall linear forwards}
+    @keyframes fall{ to{ transform:translateY(110vh) rotate(360deg) } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">微型補救教材設計：<span style="color:var(--accent)">誰能整除誰？</span> 大解密！</div>
+    <div class="subtitle">學習時間：60–90 秒｜概念比喻：<b>鑰匙(小)</b> 開 <b>鎖(大)</b></div>
+
+    <!-- Part 1: 概念釐清 -->
+    <div class="card section" id="part1">
+      <div class="row">
+        <div>
+          <div class="eq" aria-live="polite">24 ÷ 8 = 3</div>
+          <div class="narration" id="narration">我們都知道 24 ÷ 8 = 3，而且剛好分完。但到底該說「8 能整除 24」，還是「24 能整除 8」呢？</div>
+          <div class="controls">
+            <button id="play">▶ 播放動畫</button>
+            <button class="secondary" id="reset">↺ 重置</button>
+            <button class="secondary" id="showConclusion">顯示重點</button>
+          </div>
+          <div class="conclusion" id="conclusion" hidden>
+            <span class="pill">結論</span>
+            永遠是 <b>小的數字（除數／鑰匙）</b> 去「整除」<b>大的數字（被除數／鎖）</b>。<br/>
+            正確說法是：<b>8 能整除 24</b>。
+          </div>
+        </div>
+
+        <div>
+          <div class="stage" id="stage" aria-label="鑰匙開鎖動畫">
+            <div class="legend">比喻：鑰匙(8) → 鎖(24)</div>
+
+            <!-- KEY (8) -->
+            <div class="key" aria-hidden="true">
+              <svg viewBox="0 0 120 120" width="120" height="120">
+                <defs>
+                  <linearGradient id="gk" x1="0" x2="1">
+                    <stop offset="0%" stop-color="#22d3ee"/>
+                    <stop offset="100%" stop-color="#a78bfa"/>
+                  </linearGradient>
+                </defs>
+                <circle cx="38" cy="50" r="22" fill="url(#gk)" stroke="#0ea5e9"/>
+                <rect x="58" y="44" width="48" height="10" rx="4" fill="url(#gk)"/>
+                <rect x="88" y="44" width="10" height="18" rx="2" fill="#0ea5e9"/>
+              </svg>
+              <div class="label">8</div>
+            </div>
+
+            <!-- LOCK (24) -->
+            <div class="lock" aria-hidden="true">
+              <svg viewBox="0 0 120 120" width="120" height="120">
+                <defs>
+                  <linearGradient id="gl" x1="0" x2="1">
+                    <stop offset="0%" stop-color="#64748b"/>
+                    <stop offset="100%" stop-color="#94a3b8"/>
+                  </linearGradient>
+                </defs>
+                <!-- body -->
+                <rect x="24" y="42" width="72" height="62" rx="10" fill="url(#gl)" stroke="#475569"/>
+                <!-- door that swings -->
+                <g class="lock-door">
+                  <rect x="24" y="42" width="72" height="62" rx="10" fill="url(#gl)" opacity="0.001"/>
+                </g>
+                <!-- shackle -->
+                <path d="M36,42 a24,24 0 0 1 48,0" fill="none" stroke="#cbd5e1" stroke-width="10"/>
+                <!-- keyhole (視覺位置：cx=60, cy=72, r=7) -->
+                <circle cx="60" cy="72" r="7" fill="#0b1220"/>
+              </svg>
+              <div class="label">24</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Part 2: 互動練習 -->
+    <div class="card section" id="part2">
+      <div class="title" style="font-size:22px; margin-bottom:8px">互動練習：句子拖拖看</div>
+      <div class="practice">
+        <div class="items" aria-label="可拖曳句子清單">
+          <h4>把正確句子拖到右邊框框</h4>
+          <div class="draggable" draggable="true" data-answer="good"><span class="drag-badge">A</span>7 能整除 49</div>
+          <div class="draggable" draggable="true" data-answer="bad"><span class="drag-badge">B</span>49 能整除 7</div>
+          <div class="draggable" draggable="true" data-answer="good"><span class="drag-badge">C</span>10 能整除 50</div>
+          <div class="draggable" draggable="true" data-answer="bad"><span class="drag-badge">D</span>50 能整除 10</div>
+          <div class="hint" id="hintList">提示：想想看，是「<b>鑰匙</b>打開<b>鎖</b>」，還是「鎖打開鑰匙」呢？</div>
+        </div>
+
+        <div class="dropzone" aria-label="放置區域">
+          <h4>請將正確的句子拖到這裡</h4>
+          <div class="zone" id="zone" role="list"></div>
+          <div class="hint" id="hintZone">需放入 2 個正確句子</div>
+          <div class="controls" style="margin-top:10px">
+            <button id="check">✓ 檢查答案</button>
+            <button class="secondary" id="resetPractice">重置練習</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="confetti" id="confetti"></div>
+  </div>
+
+  <script>
+    // --- Part 1: concept animation ---
+    const stage = document.getElementById('stage');
+    const narration = document.getElementById('narration');
+    const playBtn = document.getElementById('play');
+    const resetBtn = document.getElementById('reset');
+    const showConclusionBtn = document.getElementById('showConclusion');
+    const conclusion = document.getElementById('conclusion');
+
+    function showToast(msg, ms=1800){
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('show');
+      setTimeout(()=> t.classList.remove('show'), ms);
+    }
+
+    playBtn.addEventListener('click', ()=>{
+      // 停止舊動畫（便於重播）
+      stage.classList.remove('animate');
+      void stage.offsetWidth; // 強制 reflow 重置動畫
+
+      // 重新計算：鑰匙前端(牙口) → 鎖孔中心 前的一點點距離
+      const keyEl  = stage.querySelector('.key');
+      const lockEl = stage.querySelector('.lock');
+
+      const kb = keyEl.getBoundingClientRect();
+      const lb = lockEl.getBoundingClientRect();
+
+      // --- 計算鎖孔中心的文件座標 ---
+      // 鎖 SVG 寬固定為 120，鎖孔 cx=60，因此中心 x = 鎖左 + (60/120)*寬
+      const lockSvgWidth = lockEl.clientWidth || 120;
+      const keyholeCenterX = lb.left + (60/120) * lockSvgWidth;
+
+      // --- 計算鑰匙前端(最前面)的文件座標 ---
+      // 鑰匙 SVG 前端大約在 x=106（由 <rect x="58" width="48"> 得到右緣 106）
+      const keyFrontLocalX = 106;
+      const keyFrontDocX = kb.left + keyFrontLocalX;
+
+      // 預留一點點縫隙，不讓鑰匙穿過鎖孔（可調）
+      const gap = 4;
+
+      // 需要的水平位移量
+      const dx = (keyholeCenterX - gap) - keyFrontDocX;
+
+      // 設定到 CSS 變數，交給 @keyframes 使用
+      stage.style.setProperty('--dx', `${dx}px`);
+
+      // 啟動動畫 & 旁白
+      stage.classList.add('animate');
+      narration.textContent = '我們把「能整除」想像成「能打開」！鑰匙(8) 緩慢地直直飛到鎖孔前方，然後打開鎖(24)。';
+      showToast('播放：鑰匙停在鎖孔前');
+    });
+
+    resetBtn.addEventListener('click', ()=>{
+      stage.classList.remove('animate');
+      narration.textContent = '我們都知道 24 ÷ 8 = 3，而且剛好分完。但到底該說「8 能整除 24」，還是「24 能整除 8」呢？';
+      conclusion.hidden = true;
+    });
+
+    showConclusionBtn.addEventListener('click', ()=>{
+      conclusion.hidden = false;
+      showToast('重點：小(除數) 整除 大(被除數)');
+    });
+
+    // --- Part 2: drag & drop practice ---
+    const draggables = Array.from(document.querySelectorAll('.draggable'));
+    const zone = document.getElementById('zone');
+    const checkBtn = document.getElementById('check');
+    const resetPracticeBtn = document.getElementById('resetPractice');
+    const hintZone = document.getElementById('hintZone');
+
+    let dragSrc = null;
+
+    function handleDragStart(e){
+      dragSrc = this;
+      this.setAttribute('aria-grabbed', 'true');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', this.textContent.trim());
+    }
+    function handleDragEnd(){ this.removeAttribute('aria-grabbed'); }
+
+    draggables.forEach(el=>{
+      el.addEventListener('dragstart', handleDragStart);
+      el.addEventListener('dragend', handleDragEnd);
+    });
+
+    zone.addEventListener('dragover', e=>{ e.preventDefault(); zone.classList.add('over'); });
+    zone.addEventListener('dragleave', ()=> zone.classList.remove('over'));
+    zone.addEventListener('drop', e=>{
+      e.preventDefault(); zone.classList.remove('over');
+      if(!dragSrc) return;
+      const good = dragSrc.dataset.answer === 'good';
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.dataset.answer = dragSrc.dataset.answer;
+      chip.innerHTML = dragSrc.innerHTML + '<button aria-label="移除" style="all:unset; cursor:pointer; font-weight:900"> ×</button>';
+      zone.appendChild(chip);
+      dragSrc.remove();
+      chip.querySelector('button').addEventListener('click', ()=>{
+        // return to list
+        const back = document.createElement('div');
+        back.className = 'draggable';
+        back.draggable = true;
+        back.dataset.answer = chip.dataset.answer;
+        back.innerHTML = chip.innerHTML.replace(/<button[\s\S]*?<\/button>/,'');
+        document.querySelector('.items').insertBefore(back, document.getElementById('hintList'));
+        back.addEventListener('dragstart', handleDragStart);
+        back.addEventListener('dragend', handleDragEnd);
+        chip.remove();
+        updateHint();
+      });
+      showToast(good ? '✅ 放對了！' : '❌ 這句不對喔');
+      updateHint();
+    });
+
+    function updateHint(){
+      const placed = Array.from(zone.querySelectorAll('.chip'));
+      const correct = placed.filter(c=> c.dataset.answer==='good').length;
+      const wrong = placed.filter(c=> c.dataset.answer==='bad').length;
+      hintZone.className = 'hint';
+      if(correct===2 && wrong===0){ hintZone.textContent = '太棒了！已放入 2 個正確句子。按下「檢查答案」完成！'; hintZone.classList.add('good'); }
+      else if(wrong>0){ hintZone.textContent = '想想看，是鑰匙(小)打開鎖(大)嗎？有錯的句子需要移除喔！'; hintZone.classList.add('bad'); }
+      else { hintZone.textContent = `需放入 2 個正確句子（目前：正確 ${correct} 個）`; }
+    }
+
+    checkBtn.addEventListener('click', ()=>{
+      const placed = Array.from(zone.querySelectorAll('.chip'));
+      const correct = placed.filter(c=> c.dataset.answer==='good').length;
+      const wrong = placed.filter(c=> c.dataset.answer==='bad').length;
+      if(correct===2 && wrong===0){ celebrate(); showToast('答對了！小(除數) → 整除 → 大(被除數)'); }
+      else { showToast('還沒完全正確，請依「鑰匙開鎖」原則再想想！', 2200); }
+    });
+
+    resetPracticeBtn.addEventListener('click', ()=>{
+      zone.innerHTML='';
+      const list = document.querySelector('.items');
+      list.querySelectorAll('.draggable').forEach(n=>n.remove());
+      const items = [
+        ['A','7 能整除 49','good'],
+        ['B','49 能整除 7','bad'],
+        ['C','10 能整除 50','good'],
+        ['D','50 能整除 10','bad']
+      ];
+      items.forEach(([badge,text,ans])=>{
+        const d=document.createElement('div');
+        d.className='draggable'; d.draggable=true; d.dataset.answer=ans;
+        d.innerHTML = `<span class="drag-badge">${badge}</span>${text}`;
+        d.addEventListener('dragstart', handleDragStart);
+        d.addEventListener('dragend', handleDragEnd);
+        list.insertBefore(d, document.getElementById('hintList'));
+      });
+      updateHint();
+      showToast('已重置練習');
+    });
+
+    function celebrate(){
+      const c = document.getElementById('confetti');
+      c.innerHTML = '';
+      const n = 60;
+      for(let i=0;i<n;i++){
+        const s = document.createElement('i');
+        s.style.left = Math.random()*100 + 'vw';
+        s.style.animationDuration = (1.2 + Math.random()*1.2) + 's';
+        s.style.opacity = 0.6 + Math.random()*0.4;
+        c.appendChild(s);
+      }
+      setTimeout(()=> c.innerHTML='', 1800);
+    }
+
+    // Initialize hints
+    updateHint();
+  </script>
+</body>
+</html>
+```
+
+要不要再加一個小細節：**到達鎖孔前方先停 0.3 秒，再開門**，或是加「卡嚓」音效？我可以幫你接上（純前端、無外掛）。
