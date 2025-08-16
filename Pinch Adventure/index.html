@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>因數尋寶記：夾擠法大冒險</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#0b1220; --ink:#e5e7eb; --muted:#94a3b8; --accent:#22d3ee;
+    --good:#86efac; --bad:#fca5a5; --warn:#fde68a; --rail:#334155;
+  }
+  html,body{height:100%}
+  body{
+    margin:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "Helvetica Neue", Arial;
+    background:radial-gradient(1200px 700px at 50% -10%, #1f2937 0%, #0f172a 60%); color:var(--ink);
+  }
+  .wrap{max-width:1024px; margin:0 auto; padding:22px}
+  .card{background:linear-gradient(180deg, #0b1220 0%, #0a0f1a 100%); border:1px solid #1f2937; border-radius:18px; box-shadow:0 10px 30px rgba(0,0,0,.28)}
+  .head{padding:18px 20px}
+  .title{font-weight:900; font-size:clamp(24px,4.4vw,40px); letter-spacing:.3px}
+  .subtitle{color:var(--muted); margin-top:4px}
+
+  .stage{position:relative; min-height:340px; padding:18px 20px; border-top:1px solid #132033}
+  .center{display:grid; place-items:center}
+  .heroN{font-weight:1000; font-size:clamp(56px,10vw,120px); letter-spacing:1px; color:#e2f1ff; text-shadow:0 10px 40px rgba(34,211,238,.25)}
+  .wave{animation:wave 2.8s ease-in-out infinite}
+  @keyframes wave{0%,100%{transform:rotate(-1.5deg) scale(1)}50%{transform:rotate(1.5deg) scale(1.04)}}
+
+  .bigStart{
+    margin-top:16px; display:inline-flex; gap:10px; align-items:center;
+    font-size:clamp(18px,2.6vw,24px); padding:14px 22px; border-radius:14px;
+    border:none; cursor:pointer; font-weight:900; color:#06131f; background:var(--accent);
+    box-shadow:0 10px 30px rgba(34,211,238,.35), 0 0 0 0 rgba(34,211,238,.5);
+    animation:pulse 2s infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 10px 30px rgba(34,211,238,.35), 0 0 0 0 rgba(34,211,238,.45)}
+    70%{box-shadow:0 10px 30px rgba(34,211,238,.35), 0 0 0 22px rgba(34,211,238,0)}
+    100%{box-shadow:0 10px 30px rgba(34,211,238,.35), 0 0 0 0 rgba(34,211,238,0)}
+  }
+
+  .inputRow{display:flex; gap:10px; justify-content:center; margin-top:12px; flex-wrap:wrap}
+  .labelN{color:#bfdbfe; font-weight:900; background:#0e1a2c; border:1px solid #334155; border-radius:10px; padding:8px 12px}
+  .nInput{
+    background:#0e1a2c; color:#dce6f3; border:1px solid #334155; border-radius:12px;
+    padding:10px 12px; font-weight:800; min-width:160px; text-align:center; font-size:18px;
+  }
+  .nInput::placeholder{color:#7aa2d2}
+  .help{width:100%; text-align:center; color:#7aa2d2; font-size:14px; margin-top:4px}
+
+  .narration{min-height:64px; padding:0 20px 16px; color:var(--muted); line-height:1.55}
+
+  /* rails */
+  .rails{margin-top:4px; border:1px dashed var(--rail); border-radius:14px; padding:14px}
+  .rail{display:flex; justify-content:space-between; gap:10px; align-items:center}
+  .rail .slot{min-width:64px; min-height:44px; border:1px dashed #3b4256; border-radius:10px; display:flex; align-items:center; justify-content:center; padding:8px 10px; color:#cbd5e1; font-size:20px; font-weight:900}
+  .rail .slot.success{border-color:#14532d; background:#052e1a; color:#c7f9d4}
+  .rail .slot.fail{border-color:#5b1111; background:#2a0a0a; color:#ffd3d3}
+  .rail .dots{flex:1; height:2px; background:repeating-linear-gradient(90deg,#31405a 0 12px, transparent 12px 18px)}
+  .pack{display:flex; gap:8px; align-items:center}
+
+  /* 計算機 */
+  .calc{margin-top:12px; background:#0a1424; border:1px solid #1f2b46; border-radius:12px; padding:14px 16px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace}
+  .calc .line{min-height:38px; font-size:clamp(20px,3.6vw,28px); letter-spacing:.5px}
+  .calc .ok{color:var(--good); font-weight:900}
+  .calc .no{color:var(--bad); font-weight:900}
+
+  .rowflex{display:flex; justify-content:space-between; align-items:center; gap:10px}
+  .stop{font-size:clamp(28px,6vw,56px); font-weight:1000; color:#ffbfbf; border:3px solid #ffbfbf; padding:8px 16px; border-radius:12px; box-shadow:0 6px 24px rgba(255,80,80,.25)}
+  .glow{filter:brightness(1.8) drop-shadow(0 0 10px rgba(255,255,255,.25));}
+
+  /* 底部工具列：永遠顯示 */
+  .btns{display:flex; gap:8px; flex-wrap:wrap; padding:14px 20px; border-top:1px solid #132033; align-items:center}
+  button{cursor:pointer; border:none; border-radius:12px; padding:10px 14px; font-weight:800; color:#06131f; background:var(--accent)}
+  button.secondary{background:#1f2937; color:var(--ink)}
+  button.ghost{background:transparent; color:#e5e7eb; border:1px solid #334155}
+  button:disabled{opacity:.5; cursor:not-allowed}
+  button:focus{outline:3px solid var(--warn); outline-offset:2px}
+  .quick{display:flex; gap:8px; align-items:center; margin-left:auto}
+  .quick input{width:120px}
+
+  .tips{display:flex; gap:8px; flex-wrap:wrap}
+  .hintbtn{background:#0e1a2c; color:#dce6f3; border:1px solid #334155; border-radius:999px; padding:8px 12px; cursor:pointer}
+  .list{margin-top:10px; display:flex; gap:12px; flex-wrap:wrap; justify-content:center}
+
+  .toast{position:fixed; inset:auto 12px 12px auto; background:#111827; color:#e5e7eb; border:1px solid #374151; border-radius:12px; padding:10px 12px; box-shadow:0 10px 30px rgba(0,0,0,.35); opacity:0; transform:translateY(8px); transition:.25s}
+  .toast.show{opacity:1; transform:translateY(0)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="head">
+        <div class="title">因數尋寶記：夾擠法大冒險</div>
+        <div class="subtitle">輸入一個正整數，用「左右夾擠」找出所有因數寶藏！</div>
+      </div>
+
+      <div class="stage" id="stage">
+        <!-- Scene 1：開場 -->
+        <div id="scene1" class="center">
+          <div class="heroN wave" id="heroN">32</div>
+          <div class="inputRow">
+            <span class="labelN">要尋寶的數字 N</span>
+            <input id="nInput" class="nInput" type="number" min="1" step="1" value="32" placeholder="例如：32, 42, 100..." aria-label="輸入要尋寶的整數"/>
+            <div class="help">可自行輸入數字，按 <b>Enter</b> 或點下方按鈕開始</div>
+          </div>
+          <button id="start" class="bigStart">✨ 開始尋寶！</button>
+          <div class="narration" id="intro" style="max-width:720px; text-align:center; margin-top:10px">
+            「嗨！我是數字 <b id='introN'>32</b>，你能幫我找出所有藏在我身體裡的『因數』寶藏嗎？我們要用一個超酷的方法，叫做『夾擠法』喔！準備好了嗎？」
+          </div>
+        </div>
+
+        <!-- Scene 2+3：流程 -->
+        <div id="sceneRails" hidden>
+          <div class="rails">
+            <div class="rail">
+              <div id="leftPack" class="pack"><div class="slot" id="left1">1</div></div>
+              <div class="dots"></div>
+              <div id="rightPack" class="pack"><div class="slot" id="rightN">N</div></div>
+            </div>
+            <div class="calc" id="calc"><div class="line" id="calcLine">準備測試：從 2 開始…</div></div>
+          </div>
+
+          <div class="rowflex" style="margin-top:10px">
+            <div style="display:flex; gap:8px; align-items:center">
+              <button id="next">下一步</button>
+              <button id="auto" class="secondary">自動播放</button>
+              <button id="reset" class="ghost">重來</button>
+            </div>
+            <div id="stopBanner" hidden class="stop">STOP！</div>
+          </div>
+
+          <div class="narration" id="narr">—</div>
+        </div>
+
+        <!-- Scene 5：結果 -->
+        <div id="sceneResult" hidden>
+          <div class="center">
+            <div id="resultTitle" style="font-weight:900; font-size:clamp(20px,3.6vw,30px); margin-bottom:8px">尋寶成功！的因數</div>
+            <div id="answer" style="font-size:clamp(20px,4.8vw,40px); font-weight:800"></div>
+          </div>
+          <div style="margin-top:16px">
+            <div class="tips">
+              <button class="hintbtn" id="replayPairs">成對出現（重播）</button>
+              <button class="hintbtn" id="again">再玩一次</button>
+            </div>
+            <div class="list" id="extra"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部工具列：永遠可用 -->
+      <div class="btns" id="footerBtns">
+        <button id="toResult">直接看答案</button>
+        <button id="resetAll" class="ghost">重置到開場</button>
+        <div class="quick" title="在任何階段快速換數字並立即開始">
+          <span style="color:#94a3b8">快速換數字</span>
+          <input id="quickN" class="nInput" type="number" min="1" step="1" value="32">
+          <button id="quickGo" class="secondary">開始新的尋寶</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+
+<script>
+(()=> {
+  const MEET_PAUSE_MS = 2800;
+  const $ = s=>document.querySelector(s);
+  const toastEl = $('#toast');
+  function showToast(msg, ms=1600){ toastEl.textContent=msg; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'), ms); }
+  function typeIn(el, text, speed=28){
+    return new Promise(res=>{
+      el.textContent=''; let i=0;
+      const id = setInterval(()=>{ el.textContent += text[i++] || ''; if(i>text.length){ clearInterval(id); res(); } }, speed);
+    });
+  }
+  function makeSlot(val){ const d=document.createElement('div'); d.className='slot'; d.textContent=val; return d; }
+  function animateSlideIn(el, fromX){ el.style.opacity=0; el.style.transform=`translate(${fromX}px,0)`; return el.animate([{opacity:0, transform:`translate(${fromX}px,0)`},{opacity:1, transform:'translate(0,0)'}],{duration:600, easing:'cubic-bezier(.2,.7,.2,1)', fill:'forwards'}).finished; }
+  function flashOk(el){ el.classList.remove('success'); void el.offsetWidth; el.classList.add('success'); }
+  function flashFail(el){ el.classList.remove('fail'); void el.offsetWidth; el.classList.add('fail'); }
+
+  // elements
+  const scene1 = $('#scene1'), sceneRails = $('#sceneRails'), sceneResult = $('#sceneResult');
+  const heroN = $('#heroN'), introN = $('#introN'), nInput = $('#nInput');
+  const leftPack = $('#leftPack'), rightPack = $('#rightPack'), rightNslot = $('#rightN');
+  const calcLine = $('#calcLine'), narr = $('#narr'), resultTitle = $('#resultTitle'), answer = $('#answer'), extra = $('#extra');
+  const startBtn = $('#start'), nextBtn = $('#next'), autoBtn = $('#auto'), resetBtn = $('#reset');
+  const stopBanner = $('#stopBanner'), toResult = $('#toResult'), replayPairs = $('#replayPairs'), again = $('#again');
+
+  // quick controls
+  const quickN = $('#quickN'), quickGo = $('#quickGo'), resetAllBtn = $('#resetAll');
+
+  // state
+  let N = 32, divisor = 2, autoPlay = false, stopped = false, pairs = [[1, N]];
+
+  function syncIntro(fromInput=true){
+    const val = parseInt((fromInput ? nInput.value : quickN.value),10);
+    const clean = Math.max(1, Math.abs(val || 1));
+    if(fromInput){ nInput.value = String(clean); } else { quickN.value = String(clean); }
+    N = clean;
+    heroN.textContent = String(N);
+    introN.textContent = String(N);
+    quickN.value = String(N);
+  }
+  nInput.addEventListener('input', ()=>syncIntro(true));
+  nInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); startFlow(); }});
+  quickN.addEventListener('input', ()=>syncIntro(false));
+
+  function setupRails(){
+    leftPack.innerHTML=''; rightPack.innerHTML='';
+    leftPack.appendChild(makeSlot('1'));
+    rightPack.appendChild(makeSlot(String(N)));
+    rightNslot.textContent = String(N);
+    calcLine.textContent = '準備測試：從 2 開始…';
+    narr.textContent = '—';
+    stopBanner.hidden = true;
+  }
+
+  function gotoRails(){
+    scene1.hidden = true; sceneRails.hidden = false; sceneResult.hidden = false; // 先顯示，稍後在結果頁才覆蓋
+    sceneResult.hidden = true;
+    setupRails();
+    animateSlideIn(leftPack.firstElementChild, -140);
+    animateSlideIn(rightPack.firstElementChild, 140);
+    narr.innerHTML = `太棒了！首先登場的是左右護法：<b>1</b> 和 <b>${N}</b>！任何數字的因數，都一定有 1 和它自己喔！`;
+    showToast('左右護法就位！');
+    nextBtn.disabled=false; autoBtn.disabled=false;
+  }
+
+  function resetToIntro(){
+    autoPlay = false; stopped = false; divisor = 2; pairs = [[1,N]];
+    scene1.hidden=false; sceneRails.hidden=true; sceneResult.hidden=true;
+    heroN.classList.add('wave');
+    syncIntro(true);
+    setupRails();
+  }
+
+  async function step(){
+    if(stopped) return;
+    nextBtn.disabled = true;
+
+    const d = divisor;
+    const rightFront = pairs[pairs.length-1][1];
+    if(d > rightFront){ meetStop(); return; }
+
+    const q = Math.floor(N/d), r = N % d;
+    let formula = `${N} ÷ ${d} = ${q}`;
+    if(r!==0) formula += ` ... ${r}`;
+    await typeIn(calcLine, formula, 22);
+
+    if(r===0){
+      const mate = q;
+      const sL = makeSlot(String(d));
+      const sR = makeSlot(String(mate));
+      leftPack.appendChild(sL);
+      rightPack.insertBefore(sR, rightPack.firstElementChild);
+      await Promise.all([animateSlideIn(sL, -120), animateSlideIn(sR, 120)]);
+      flashOk(sL); flashOk(sR);
+      calcLine.insertAdjacentHTML('beforeend', ` <span class="ok">✔</span>`);
+      pairs.push([d,mate]);
+      narr.innerHTML = `整除了！<b>${d}</b> 和 <b>${mate}</b> 是一對因數夥伴，加入隊伍！`;
+      showToast(`${d} × ${mate} = ${N}`);
+    }else{
+      calcLine.insertAdjacentHTML('beforeend', ` <span class="no">✖</span>`);
+      narr.innerHTML = `換 <b>${d}</b> 試試看……有餘數！所以 <b>${d}</b> 不是寶藏。`;
+      flashFail(calcLine.parentElement);
+      await new Promise(r=>setTimeout(r,380));
+    }
+
+    const nextRight = pairs[pairs.length-1][1];
+    if(d+1 >= nextRight){ meetStop(); return; }
+
+    divisor++;
+    nextBtn.disabled = false;
+    if(autoPlay) setTimeout(()=> step(), (N%d===0) ? 520 : 320);
+  }
+
+  function meetStop(){
+    stopped = true;
+    stopBanner.hidden = false;
+    stopBanner.animate([{transform:'scale(.9)', opacity:0},{transform:'scale(1)', opacity:1}],{duration:300, easing:'ease-out', fill:'forwards'});
+
+    const meet = pairs[pairs.length-1][1];
+    const rightChips = [...rightPack.querySelectorAll('.slot')];
+    const target = rightChips.find(x=>x.textContent==String(meet));
+    if(target){
+      target.classList.add('glow');
+      target.animate([{filter:'brightness(1)'},{filter:'brightness(1.8)'},{filter:'brightness(1)'}],{duration:1000, iterations:2});
+    }
+    narr.innerHTML = `等等！我們要測試的數字 <b>${meet}</b> 已經在右邊隊伍裡了！<b>左右碰面＝尋寶完成</b>，這就是「夾擠法」的精髓！`;
+
+    nextBtn.disabled = true; autoBtn.disabled = true;
+    setTimeout(showResult, MEET_PAUSE_MS);
+  }
+
+  function showResult(){
+    sceneRails.hidden = true;
+    sceneResult.hidden = false; extra.innerHTML=''; answer.innerHTML='';
+    resultTitle.innerHTML = `尋寶成功！<b>${N}</b> 的因數`;
+
+    const set = new Set();
+    pairs.forEach(([a,b])=>{ set.add(a); set.add(b); });
+    const sorted = Array.from(set).sort((a,b)=>a-b);
+
+    let i=0;
+    const timer = setInterval(()=>{
+      if(i>=sorted.length){ clearInterval(timer); }
+      else{
+        const span = document.createElement('span');
+        span.textContent = (i>0 ? ', ' : '') + sorted[i++];
+        span.style.opacity=0;
+        answer.appendChild(span);
+        span.animate([{opacity:0, transform:'translateY(6px)'},{opacity:1, transform:'translateY(0)'}],{duration:260, fill:'forwards'});
+      }
+    }, 160);
+    narr.innerHTML = `尋寶成功！<b>${N}</b> 的所有因數就是這些了：<b>${sorted.join(', ')}</b>。`;
+  }
+
+  // Tips：重播成對
+  replayPairs.addEventListener('click', async ()=>{
+    extra.innerHTML = '';
+    const rail = document.createElement('div'); rail.className='rail';
+    const lp = document.createElement('div'); lp.className='pack';
+    const rp = document.createElement('div'); rp.className='pack';
+    const dots = document.createElement('div'); dots.className='dots';
+    rail.append(lp, dots, rp); extra.appendChild(rail);
+
+    for(const [a,b] of pairs){
+      const L = makeSlot(String(a)), R = makeSlot(String(b));
+      lp.appendChild(L); rp.insertBefore(R, rp.firstElementChild);
+      await Promise.all([animateSlideIn(L,-120), animateSlideIn(R,120)]);
+      flashOk(L); flashOk(R);
+      await new Promise(r=>setTimeout(r,160));
+    }
+    showToast('成對出現：小的搭大的！');
+  });
+
+  // 流程控制
+  function startFlow(){
+    syncIntro(true);
+    divisor = 2; stopped = false; pairs = [[1, N]];
+    scene1.hidden = true; gotoRails();
+  }
+  startBtn.addEventListener('click', startFlow);
+  nextBtn.addEventListener('click', step);
+  autoBtn.addEventListener('click', ()=>{ autoPlay = true; nextBtn.disabled=true; autoBtn.disabled=true; step(); });
+  resetBtn.addEventListener('click', resetToIntro);
+  toResult.addEventListener('click', showResult);
+  resetAllBtn.addEventListener('click', resetToIntro);
+
+  // 快速換數字（任何階段可用）
+  function setAndStart(newN){
+    const clean = Math.max(1, Math.abs(parseInt(newN,10) || 1));
+    N = clean;
+    nInput.value = String(N);
+    quickN.value = String(N);
+    heroN.textContent = String(N);
+    introN.textContent = String(N);
+
+    // 直接重置並進入 Rails
+    divisor = 2; stopped = false; pairs = [[1, N]];
+    gotoRails();
+  }
+  quickGo.addEventListener('click', ()=> setAndStart(quickN.value));
+  quickN.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); setAndStart(quickN.value); }});
+
+  // 初始
+  syncIntro(true);
+  resetToIntro();
+})();
+</script>
+</body>
+</html>
