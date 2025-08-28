@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>因數與倍數的家庭關係</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#111827; --ink:#e5e7eb; --muted:#94a3b8; --accent:#22d3ee; --main:#facc15;
+    --red:#fca5a5; --red-b:#ef4444; --green:#86efac; --green-b:#22c55e; --solo:#fde68a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Noto Sans TC",ui-sans-serif,system-ui,Arial;background:var(--bg);color:var(--ink);display:flex;justify-content:center;min-height:100vh}
+  .card{background:var(--card);border-radius:16px;padding:22px;max-width:960px;width:95%;box-shadow:0 10px 30px rgba(0,0,0,.35);margin:18px}
+  h1{margin:4px 0 12px;text-align:center;color:var(--accent);font-size:clamp(20px,4vw,30px)}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center;margin-bottom:10px}
+  input[type="number"]{padding:10px 12px;border-radius:10px;border:1px solid #334155;background:#0b1424;color:var(--ink);width:140px;text-align:center;font-weight:800}
+  button{cursor:pointer;border:none;border-radius:12px;padding:10px 16px;font-weight:800;background:var(--accent);color:#06202a}
+  button.secondary{background:#1f2937;color:var(--ink)}
+  button.ghost{background:transparent;color:var(--ink);border:1px solid #334155}
+  button:disabled{opacity:.6;cursor:not-allowed}
+
+  .stage{padding:6px 10px 14px}
+  .main-number{font-size:clamp(48px,9vw,96px);font-weight:1000;text-align:center;margin:8px 0;color:var(--main);text-shadow:0 10px 30px rgba(250,204,21,.15)}
+  .arrow{width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;margin:6px auto}
+  .arrow.down{border-top:16px solid var(--accent)}
+  .arrow.up{border-bottom:16px solid var(--accent)}
+  .area{min-height:96px;display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:12px;margin:14px 0;position:relative}
+
+  .pill{background:#1e293b;border:1px solid #2b3b55;border-radius:12px;padding:10px 14px;font-weight:900;font-size:20px;opacity:0;transform:translateY(30px);transition:filter .2s, transform .2s}
+  .pill.show{animation:rise .5s forwards}
+  @keyframes rise{to{opacity:1;transform:translateY(0)}}
+
+  /* 成對高亮 */
+  .pair-red{color:var(--red); border-color:var(--red-b); box-shadow:0 0 0 2px rgba(239,68,68,.35) inset}
+  .pair-green{color:var(--green); border-color:var(--green-b); box-shadow:0 0 0 2px rgba(34,197,94,.35) inset}
+  .pair-solo{color:#854d0e; background:#1f2937; border-color:#eab308; box-shadow:0 0 0 2px rgba(234,179,8,.35) inset}
+
+  .hint{min-height:32px;margin-top:4px;text-align:center;color:var(--muted)}
+  .hint .badge{display:inline-block;background:#0ea5e9;color:#06202a;border-radius:999px;padding:2px 8px;font-weight:900;margin-right:6px}
+  .hint.fadein{animation:fade .35s ease-out}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  .footer{display:flex;justify-content:center;gap:10px;margin-top:10px}
+  .summary{margin-top:14px}
+  table{width:100%;border-collapse:collapse}
+  th,td{border:1px solid #334155;padding:8px;text-align:center}
+  th{background:#1e293b}
+  td{background:#0a1220}
+
+  /* 老師模式（設定區） */
+  .settings{margin-top:10px;border-top:1px solid #1f2a44;padding-top:10px}
+  .settings .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .settings .panel{margin-top:8px;background:#0b1424;border:1px solid #1f2a44;border-radius:12px;padding:12px;display:none}
+  .settings .row{display:flex;align-items:center;gap:12px;margin:8px 0}
+  .settings label{min-width:120px;color:#9fb6d6;font-weight:800}
+  .settings input[type="range"]{width:220px}
+  .kv{background:#0a1220;border:1px solid #24324e;border-radius:8px;padding:4px 8px;font-weight:900;color:#cfe3ff}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>因數與倍數的家庭關係</h1>
+
+    <div class="controls">
+      主角數字 N =
+      <input type="number" id="numInput" value="12" min="1" step="1" aria-label="主角數字"/>
+      <button id="factorsBtn">顯示因數</button>
+      <button id="multiplesBtn">顯示倍數</button>
+      <button id="summaryBtn" class="secondary">總結圖卡</button>
+    </div>
+
+    <div class="stage">
+      <div class="main-number" id="mainNum">12</div>
+      <div class="arrow down"></div>
+      <div class="area" id="factorsArea"></div>
+      <div class="arrow up"></div>
+      <div class="area" id="multiplesArea"></div>
+      <div class="hint" id="hint"></div>
+    </div>
+
+    <div class="summary" id="summary" hidden>
+      <table>
+        <tr><th>特性</th><th>因數 (Factors)</th><th>倍數 (Multiples)</th></tr>
+        <tr><td>關係</td><td>祖先（組成你）</td><td>後代（由你而生）</td></tr>
+        <tr><td>大小</td><td>≤ 自己</td><td>≥ 自己</td></tr>
+        <tr><td>數量</td><td>有限的</td><td>無限的</td></tr>
+      </table>
+    </div>
+
+    <!-- 老師模式 -->
+    <div class="settings">
+      <div class="bar">
+        <button id="toggleSettings" class="ghost">⚙️ 老師模式</button>
+        <div style="color:#9fb6d6">（調整動畫速度與「顯示倍數」的數量）</div>
+      </div>
+      <div id="settingsPanel" class="panel">
+        <div class="row">
+          <label for="speedRange">動畫速度</label>
+          <input id="speedRange" type="range" min="40" max="400" step="10" value="160">
+          <span>間隔：<span id="speedVal" class="kv">160ms / 顆</span></span>
+        </div>
+        <div class="row">
+          <label for="countRange">倍數顯示數量</label>
+          <input id="countRange" type="range" min="5" max="20" step="1" value="8">
+          <span>個數：<span id="countVal" class="kv">8</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <button id="clear" class="secondary">清空畫面</button>
+    </div>
+  </div>
+
+<script>
+/* 元素 */
+const numInput = document.getElementById('numInput');
+const mainNum = document.getElementById('mainNum');
+const factorsArea = document.getElementById('factorsArea');
+const multiplesArea = document.getElementById('multiplesArea');
+const hint = document.getElementById('hint');
+const summary = document.getElementById('summary');
+
+/* 老師模式控制 */
+const toggleSettings = document.getElementById('toggleSettings');
+const settingsPanel = document.getElementById('settingsPanel');
+const speedRange = document.getElementById('speedRange');
+const countRange = document.getElementById('countRange');
+const speedVal = document.getElementById('speedVal');
+const countVal = document.getElementById('countVal');
+
+/* 互動按鈕 */
+const factorsBtn = document.getElementById('factorsBtn');
+const multiplesBtn = document.getElementById('multiplesBtn');
+const summaryBtn = document.getElementById('summaryBtn');
+const clearBtn = document.getElementById('clear');
+
+/* 狀態（可調） */
+let delayMs = 160;      // 每顆數字冒出的間隔
+let multiplesCount = 8; // 一次顯示的倍數個數
+
+function N(){ return Math.max(1, Math.abs(parseInt(numInput.value,10)||1)); }
+function setN(){ mainNum.textContent = N(); }
+
+/* 資料生成功能 */
+function getFactors(n){
+  const a=[]; for(let i=1;i<=n;i++) if(n%i===0) a.push(i); return a;
+}
+function getMultiples(n,count=multiplesCount){
+  const a=[]; for(let i=1;i<=count;i++) a.push(n*i); return a;
+}
+
+/* 依序「冒出」數字；全部完成才 resolve */
+function showNumbers(area, list) {
+  area.innerHTML = '';
+  return new Promise(resolve=>{
+    if(list.length===0){ resolve(); return; }
+    list.forEach((val, i)=>{
+      const d = document.createElement('div');
+      d.className = 'pill';
+      d.textContent = val;
+      d.dataset.value = val;
+      area.appendChild(d);
+      setTimeout(()=> d.classList.add('show'), i*delayMs);
+      if(i === list.length-1){
+        setTimeout(resolve, i*delayMs + 520); // 最後一顆動畫完再多留一點
+      }
+    });
+  });
+}
+
+/* 因數：兩兩配對上色（紅/綠交錯；平方數中間金色） */
+function highlightFactorPairs(n){
+  const pills = [...factorsArea.querySelectorAll('.pill')].map(el=>({el, val: parseInt(el.dataset.value,10)}));
+  if(pills.length===0) return;
+  let i=0, j=pills.length-1, toggle=false;
+  while(i<j){
+    const cls = toggle ? 'pair-green' : 'pair-red';
+    pills[i].el.classList.add(cls);
+    pills[j].el.classList.add(cls);
+    toggle = !toggle;
+    i++; j--;
+  }
+  if(i===j){ // 平方數的中間那顆
+    pills[i].el.classList.add('pair-solo');
+  }
+}
+
+function showHint(msg){
+  hint.innerHTML = `<span class="badge">重點</span>${msg}`;
+  hint.classList.add('fadein'); setTimeout(()=>hint.classList.remove('fadein'), 360);
+}
+
+/* 事件：顯示因數（含成對上色） */
+factorsBtn.addEventListener('click', async ()=>{
+  summary.hidden = true; setN();
+  multiplesArea.innerHTML = '';
+  hint.textContent = '';
+  const n = N();
+  const list = getFactors(n);
+  await showNumbers(factorsArea, list);
+  highlightFactorPairs(n);
+  const isSquare = Number.isInteger(Math.sqrt(n));
+  showHint(`因數<b>成對出現</b>：小×大＝<b>${n}</b>。<span style="color:#fca5a5;font-weight:900">紅色</span>是一對，<span style="color:#86efac;font-weight:900">綠色</span>是另一對${isSquare?'；平方數中間那顆以<b>金色</b>標示。':'。'}`);
+});
+
+/* 事件：顯示倍數 */
+multiplesBtn.addEventListener('click', async ()=>{
+  summary.hidden = true; setN();
+  factorsArea.innerHTML = '';
+  hint.textContent = '';
+  const n = N();
+  await showNumbers(multiplesArea, getMultiples(n, multiplesCount));
+  showHint(`你看，<b>倍數</b>是不是都 ≥ <b>${n}</b>？而且可以<b>無限</b>找下去！（此處示範前 <b>${multiplesCount}</b> 個）`);
+});
+
+/* 事件：總結圖卡 */
+summaryBtn.addEventListener('click', ()=>{
+  summary.hidden = false;
+  showHint('下表把「祖先 vs. 後代、大小與數量」一次整理給你。');
+});
+
+/* 事件：清空 */
+clearBtn.addEventListener('click', ()=>{
+  factorsArea.innerHTML = '';
+  multiplesArea.innerHTML = '';
+  hint.textContent = '';
+  summary.hidden = true;
+});
+
+/* 老師模式：開關與同步值 */
+toggleSettings.addEventListener('click', ()=>{
+  const open = settingsPanel.style.display === 'block';
+  settingsPanel.style.display = open ? 'none' : 'block';
+});
+speedRange.addEventListener('input', ()=>{
+  delayMs = parseInt(speedRange.value, 10);
+  speedVal.textContent = `${delayMs}ms / 顆`;
+});
+countRange.addEventListener('input', ()=>{
+  multiplesCount = parseInt(countRange.value, 10);
+  countVal.textContent = String(multiplesCount);
+});
+
+/* 初始化 */
+numInput.addEventListener('change', setN);
+setN();
+speedVal.textContent = `${delayMs}ms / 顆`;
+countVal.textContent = String(multiplesCount);
+</script>
+</body>
+</html>
