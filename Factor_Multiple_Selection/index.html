@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>因數 vs 倍數：分解機與產生器（老師模式＋試錯統計＋複習區）</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#0b1220; --ink:#e5e7eb; --muted:#94a3b8; --accent:#22d3ee;
+    --good:#86efac; --bad:#fca5a5; --focus:#fde68a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Noto Sans TC",ui-sans-serif,system-ui,Arial;background:radial-gradient(1100px 700px at 50% -12%, #1f2937 0%, var(--bg) 60%);color:var(--ink)}
+  .wrap{max-width:1000px;margin:0 auto;padding:20px}
+  .title{font-weight:900;font-size:clamp(22px,4vw,32px);color:var(--accent);text-align:center}
+  .subtitle{color:var(--muted);text-align:center;margin:6px 0 14px}
+
+  .top{display:flex;gap:10px;justify-content:center;align-items:center;margin:6px 0 6px;flex-wrap:wrap}
+  .nShow{font-size:clamp(42px,8vw,90px);font-weight:1000;color:#facc15;text-shadow:0 10px 30px rgba(250,204,21,.18)}
+  .nInput{background:#0a1424;border:1px solid #334155;color:var(--ink);border-radius:10px;padding:8px 10px;width:120px;text-align:center;font-weight:900}
+  .btn{cursor:pointer;border:none;border-radius:12px;padding:10px 14px;font-weight:800;background:var(--accent);color:#06202a}
+  .btn.secondary{background:#1f2937;color:var(--ink)}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid #334155}
+  .btn:focus{outline:3px solid var(--focus);outline-offset:2px}
+
+  .arena{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px}
+  .machine{background:linear-gradient(180deg,#0b1220,#0a0f1a);border:1px solid #1f2937;border-radius:16px;padding:16px;min-height:200px;box-shadow:0 10px 30px rgba(0,0,0,.28)}
+  .mHead{display:flex;align-items:center;gap:10px;font-weight:900}
+  .mHint{color:var(--muted);font-size:14px;margin:2px 0 10px}
+  .drop{border:2px dashed #36435f;border-radius:12px;min-height:120px;padding:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
+  .drop.over{border-color:var(--focus);background:#0d1628}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:#0ea5e9;color:#06202a;border-radius:999px;padding:2px 8px;font-weight:900;font-size:12px}
+  .cards{margin-top:16px;background:#0b1220;border:1px solid #1f2937;border-radius:14px;padding:12px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+  .card{user-select:none;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:12px 16px;font-weight:900;font-size:20px;cursor:grab}
+  .card:focus{outline:3px solid var(--focus);outline-offset:2px}
+  .card[aria-grabbed="true"]{outline:3px dashed var(--accent)}
+  .ghost{opacity:.5}
+
+  .icon{width:36px;height:36px}
+  .svg-split{filter:drop-shadow(0 6px 18px rgba(34,211,238,.2))}
+  .svg-stack{filter:drop-shadow(0 6px 18px rgba(134,239,172,.2))}
+
+  .status{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:var(--muted);gap:8px;flex-wrap:wrap}
+  .score{font-weight:900}
+  .metrics{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .kv{background:#0a1220;border:1px solid #24324e;border-radius:8px;padding:4px 8px;font-weight:900;color:#cfe3ff}
+
+  .report{margin-top:14px;background:#0b1220;border:1px solid #1f2937;border-radius:14px;padding:12px;display:none}
+  .report h3{margin:0 0 8px}
+  table{width:100%;border-collapse:collapse}
+  th,td{border:1px solid #334155;padding:8px;text-align:center}
+  th{background:#1e293b}
+  td{background:#0a1220}
+
+  /* 綠色複習區（曾錯卡） */
+  .review{margin-top:12px;background:#0b1220;border:1px solid #065f46;border-radius:14px;padding:12px;display:none;box-shadow:0 0 0 2px #065f46 inset}
+  .review h4{margin:0 0 8px;color:var(--good)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:#064e3b;color:#d1fae5;border:1px solid #065f46;border-radius:999px;padding:6px 10px;font-weight:900}
+  .chip small{opacity:.85}
+
+  .toast{position:fixed;right:12px;bottom:12px;background:#111827;border:1px solid #374151;border-radius:12px;padding:10px 12px;opacity:0;transform:translateY(8px);transition:.25s}
+  .toast.show{opacity:1;transform:translateY(0)}
+
+  .confetti{position:fixed;inset:0;pointer-events:none}
+  .confetti i{position:absolute;width:8px;height:14px;background:linear-gradient(#22d3ee,#a78bfa);top:-20px;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}
+
+  /* 老師模式 */
+  .settings{margin-top:12px;border-top:1px solid #1f2a44;padding-top:8px}
+  .settings .bar{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+  .settings .panel{margin-top:8px;background:#0b1424;border:1px solid #1f2a44;border-radius:12px;padding:12px;display:none}
+  .row{display:flex;align-items:center;gap:10px;margin:8px 0;flex-wrap:wrap}
+  .row label{min-width:140px;color:#9fb6d6;font-weight:800}
+  .row input[type="range"]{width:220px}
+  .row .switch{display:flex;align-items:center;gap:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="title">因數 vs 倍數：分解機與產生器</div>
+  <div class="subtitle">把卡片拖到正確的機器：<b>變小/分割 → 因數</b>，<b>變大/累加 → 倍數</b></div>
+
+  <div class="top">
+    <span class="badge">主角數字 N</span>
+    <input id="nInput" class="nInput" type="number" min="1" step="1" value="18" aria-label="主角數字"/>
+    <button id="regen" class="btn secondary">重置卡片</button>
+  </div>
+  <div class="nShow" id="nShow">18</div>
+
+  <div class="arena" aria-label="拖曳區域">
+    <!-- 左：因數分解機 -->
+    <div class="machine" id="factorBox" aria-label="因數分解機" data-type="factor">
+      <div class="mHead">
+        <svg class="icon svg-split" viewBox="0 0 48 48" aria-hidden="true">
+          <rect x="4" y="10" width="18" height="18" rx="3" fill="#22d3ee"/>
+          <rect x="28" y="6" width="8" height="8" rx="2" fill="#7dd3fc"/>
+          <rect x="38" y="6" width="6" height="6" rx="2" fill="#bae6fd"/>
+          <rect x="28" y="16" width="6" height="6" rx="2" fill="#38bdf8"/>
+          <rect x="36" y="16" width="8" height="8" rx="2" fill="#0ea5e9"/>
+        </svg>
+        <div style="font-size:18px;font-weight:900">因數分解機</div>
+        <span class="badge">把「N 的因數」拖進來</span>
+      </div>
+      <div class="drop" id="factorDrop"></div>
+      <div class="mHint">規則：能整除 N 的正整數（≤ N）。</div>
+    </div>
+
+    <!-- 右：倍數產生器 -->
+    <div class="machine" id="multipleBox" aria-label="倍數產生器" data-type="multiple">
+      <div class="mHead">
+        <svg class="icon svg-stack" viewBox="0 0 48 48" aria-hidden="true">
+          <rect x="6" y="28" width="12" height="12" rx="2" fill="#86efac"/>
+          <rect x="20" y="22" width="12" height="12" rx="2" fill="#4ade80"/>
+          <rect x="34" y="16" width="12" height="12" rx="2" fill="#22c55e"/>
+        </svg>
+        <div style="font-size:18px;font-weight:900">倍數產生器</div>
+        <span class="badge">把「N 的倍數」拖進來</span>
+      </div>
+      <div class="drop" id="multipleDrop"></div>
+      <div class="mHint">規則：N×k（k 是正整數）。</div>
+    </div>
+  </div>
+
+  <div class="cards" id="cards" aria-label="可拖曳數字卡片"></div>
+
+  <div class="status">
+    <div class="metrics">
+      <span class="kv">嘗試：<span id="tries">0</span></span>
+      <span class="kv">錯誤：<span id="wrongs">0</span></span>
+      <span class="kv">正確率：<span id="acc">0%</span></span>
+      <!-- ✅ 這是新補上的容器，避免 updateTopBars() 找不到元素 -->
+      <span class="kv" id="progressText">請把卡片拖到正確的機器</span>
+    </div>
+    <div class="score">得分：<span id="score">0</span>/<span id="total">0</span></div>
+  </div>
+
+  <!-- 綠色複習區：曾錯卡牌 -->
+  <div class="review" id="review">
+    <h4>複習區：本回合曾放錯的卡牌</h4>
+    <div class="chips" id="reviewChips"></div>
+  </div>
+
+  <!-- 成績報告 -->
+  <div class="report" id="report">
+    <h3>本回合報告</h3>
+    <div style="margin:6px 0 10px;color:#9fb6d6">
+      嘗試 <b id="rTries">0</b> 次、錯誤 <b id="rWrongs">0</b> 次、正確率 <b id="rAcc">0%</b>
+    </div>
+    <div style="overflow-x:auto">
+      <table id="reportTable">
+        <thead><tr><th>卡片數字</th><th>正確類別</th><th>錯放次數</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button id="downloadCSV" class="btn">下載 CSV</button>
+      <button id="hideReport" class="btn secondary">關閉報告</button>
+    </div>
+  </div>
+
+  <!-- 老師模式 -->
+  <div class="settings">
+    <div class="bar">
+      <button id="toggleSettings" class="btn ghost">⚙️ 老師模式</button>
+      <div style="color:#9fb6d6">調整牌組：<b>因數卡數量</b> / <b>倍數到第幾倍</b></div>
+    </div>
+    <div id="settingsPanel" class="panel">
+      <div class="row">
+        <label for="factorCount">因數卡片數量</label>
+        <input id="factorCount" type="range" min="1" max="8" step="1" value="3">
+        <span>目前：<span id="factorCountVal" class="kv">3 張</span></span>
+      </div>
+      <div class="row">
+        <label for="maxMultiple">倍數到第幾倍（產生 2N～K·N）</label>
+        <input id="maxMultiple" type="range" min="3" max="12" step="1" value="5">
+        <span>目前：<span id="maxMultipleVal" class="kv">5 倍</span></span>
+      </div>
+      <div class="row">
+        <div class="switch">
+          <input id="toggleWrongList" type="checkbox" checked>
+          <label for="toggleWrongList">結束時列出曾錯卡片（綠色複習區）</label>
+        </div>
+      </div>
+      <div class="row" style="opacity:.85">
+        <span class="kv">每次調整會依目前設定重抽牌組並洗牌</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="confetti" id="confetti"></div>
+</div>
+
+<script>
+  // -------- 工具 & 音效 --------
+  const $ = s => document.querySelector(s);
+  const toast = $('#toast');
+  function showToast(t, ms=1200){ toast.textContent=t; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'), ms); }
+  function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+  const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  function beep(freq=880, dur=0.12, type='sine', vol=0.2){
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type=type; o.frequency.value=freq; g.gain.value=vol;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); setTimeout(()=>{o.stop();}, dur*1000);
+  }
+  function ding(){ beep(1046.5,0.12,'triangle',0.25); }
+  function buzz(){
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type='square'; o.frequency.value=110; g.gain.value=0.25;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.22);
+    setTimeout(()=>o.stop(), 240);
+  }
+  function confettiBurst(n=60){
+    const c = $('#confetti'); c.innerHTML='';
+    for(let i=0;i<n;i++){
+      const s=document.createElement('i');
+      s.style.left = Math.random()*100 + 'vw';
+      s.style.animationDuration = (1 + Math.random()*1.2) + 's';
+      s.style.opacity = 0.6 + Math.random()*0.4;
+      c.appendChild(s);
+    }
+    setTimeout(()=> c.innerHTML='', 1800);
+  }
+
+  // -------- 狀態 --------
+  let N = 18;
+  let deck = [];
+  let score = 0, tries = 0, wrongs = 0;
+  let wrongMap = {};   // { 值: 錯放次數 }
+
+  // 老師模式
+  let factorCount = 3;    // 因數卡片數量
+  let maxK = 5;           // 倍數到第 k 倍（產 2N..kN）
+  let showWrongListAtEnd = true;
+
+  // -------- 元素 --------
+  const nInput = $('#nInput'), nShow = $('#nShow');
+  const factorDrop = $('#factorDrop'), multipleDrop = $('#multipleDrop');
+  const cardsWrap = $('#cards');
+  const progressText = $('#progressText'), scoreEl = $('#score'), totalEl = $('#total');
+  const triesEl = $('#tries'), wrongsEl = $('#wrongs'), accEl = $('#acc');
+
+  const review = $('#review'), reviewChips = $('#reviewChips');
+
+  const report = $('#report'), rTries = $('#rTries'), rWrongs = $('#rWrongs'), rAcc = $('#rAcc');
+  const reportTableBody = $('#reportTable tbody');
+  const downloadCSVBtn = $('#downloadCSV'), hideReportBtn = $('#hideReport');
+
+  // 老師模式 UI
+  const toggleSettings = $('#toggleSettings');
+  const settingsPanel = $('#settingsPanel');
+  const factorCountRange = $('#factorCount');
+  const maxMultipleRange = $('#maxMultiple');
+  const factorCountVal = $('#factorCountVal');
+  const maxMultipleVal = $('#maxMultipleVal');
+  const toggleWrongList = $('#toggleWrongList');
+
+  $('#regen').addEventListener('click', ()=>{ deck = generateDeck(N, factorCount, maxK); resetGame(); });
+  toggleSettings.addEventListener('click', ()=>{ const open = settingsPanel.style.display==='block'; settingsPanel.style.display = open?'none':'block'; });
+  factorCountRange.addEventListener('input', ()=>{
+    factorCount = parseInt(factorCountRange.value,10);
+    factorCountVal.textContent = `${factorCount} 張`;
+    deck = generateDeck(N, factorCount, maxK); resetGame();
+  });
+  maxMultipleRange.addEventListener('input', ()=>{
+    maxK = parseInt(maxMultipleRange.value,10);
+    maxMultipleVal.textContent = `${maxK} 倍`;
+    deck = generateDeck(N, factorCount, maxK); resetGame();
+  });
+  toggleWrongList.addEventListener('change', ()=>{ showWrongListAtEnd = toggleWrongList.checked; });
+
+  nInput.addEventListener('change', ()=>{
+    N = Math.max(1, Math.abs(parseInt(nInput.value,10)||1));
+    nShow.textContent = N;
+    deck = generateDeck(N, factorCount, maxK); resetGame();
+  });
+
+  // -------- 規則 & 牌組 --------
+  function isFactor(x){ return x>0 && N % x === 0 && x <= N; }
+  function isMultiple(x){ return x>0 && x % N === 0; }
+
+  function allFactors(n){ const a=[]; for(let i=1;i<=n;i++){ if(n%i===0) a.push(i); } return a; }
+  function pickFactors(n, count){
+    const fac = allFactors(n), proper = fac.filter(v=> v!==1 && v!==n);
+    const out = [];
+    for(const v of proper){ if(out.length<count) out.push(v); }
+    if(out.length<count && fac.includes(1)) out.push(1);
+    if(out.length<count && fac.includes(n)) out.push(n);
+    for(const v of proper){ if(out.length<count && !out.includes(v)) out.push(v); }
+    return out.slice(0, Math.min(count, fac.length));
+  }
+  function multiplesUpTo(n, k){ const out=[]; for(let m=2;m<=k;m++) out.push(n*m); return out; }
+  function generateDeck(n, factorCnt, k){
+    const f = pickFactors(n, factorCnt);
+    let m = multiplesUpTo(n, k); if(m.length===0) m=[2*n];
+    return shuffle([...f, ...m]);
+  }
+
+  // -------- 統計 & 顯示 --------
+  function resetStats(){
+    score = 0; tries = 0; wrongs = 0; wrongMap = {};
+    deck.forEach(v => wrongMap[v]=0);
+    updateTopBars();
+  }
+  function updateTopBars(){
+    scoreEl.textContent = score; totalEl.textContent = deck.length;
+    triesEl.textContent = tries; wrongsEl.textContent = wrongs;
+    const acc = tries ? Math.round((score/tries)*100) : 0;
+    accEl.textContent = acc + '%';
+    const left = deck.length - score;
+    progressText.textContent = left>0 ? `還有 ${left} 張卡片等待分類` : '全部完成！';
+  }
+
+  function buildReviewChips(){
+    if(!showWrongListAtEnd){ review.style.display='none'; reviewChips.innerHTML=''; return; }
+    const wrongOnes = Object.entries(wrongMap).filter(([v,c])=>c>0);
+    if(wrongOnes.length===0){ review.style.display='none'; reviewChips.innerHTML=''; return; }
+    reviewChips.innerHTML='';
+    wrongOnes.forEach(([v,c])=>{
+      const num = parseInt(v,10);
+      const cls = (isMultiple(num) && !isFactor(num)) ? '倍數' : '因數';
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.innerHTML = `${num} <small>（${cls}；錯 ${c} 次）</small>`;
+      reviewChips.appendChild(chip);
+    });
+    review.style.display='block';
+  }
+
+  function correctClassOf(val){ return (isMultiple(val) && !isFactor(val)) ? '倍數' : '因數'; }
+
+  function buildReport(){
+    const acc = tries ? Math.round((score/tries)*100) : 0;
+    rTries.textContent = String(tries); rWrongs.textContent = String(wrongs); rAcc.textContent = acc + '%';
+
+    // 報告表格
+    reportTableBody.innerHTML = '';
+    deck.forEach(v=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${v}</td><td>${correctClassOf(v)}</td><td>${wrongMap[v]||0}</td>`;
+      reportTableBody.appendChild(tr);
+    });
+    report.style.display = 'block';
+
+    // DEBUG：印出錯誤紀錄
+    console.log('錯誤紀錄 wrongMap =', JSON.stringify(wrongMap));
+
+    // 生成複習區
+    buildReviewChips();
+
+    // CSV
+    downloadCSVBtn.onclick = ()=>{
+      const header = ['卡片數字','正確類別','錯放次數'];
+      const lines = [
+        `主角數字N,${N}`,
+        `嘗試次數,${tries}`,
+        `錯誤次數,${wrongs}`,
+        `正確率,${acc}%`,
+        ''
+      ];
+      const tableLines = [header.join(',')].concat(deck.map(v=>[v, correctClassOf(v), (wrongMap[v]||0)].join(',')));
+      const csv = [...lines, ...tableLines].join('\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `因數倍數_回合報告_N${N}.csv`;
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    };
+    hideReportBtn.onclick = ()=>{ report.style.display='none'; };
+  }
+
+  // -------- 拖曳 --------
+  function makeCard(num){
+    const d = document.createElement('div');
+    d.className='card'; d.textContent=num; d.draggable=true; d.tabIndex=0; d.dataset.value=num;
+
+    d.addEventListener('dragstart', (e)=>{
+      d.setAttribute('aria-grabbed','true');
+      e.dataTransfer.setData('text/plain', String(num));
+      setTimeout(()=> d.classList.add('ghost'), 0);
+    });
+    d.addEventListener('dragend', ()=>{ d.removeAttribute('aria-grabbed'); d.classList.remove('ghost'); });
+
+    d.addEventListener('keydown', (e)=>{
+      if(e.key==='Enter'){
+        const target = document.activeElement.closest('.machine')?.querySelector('.drop');
+        if(target) attemptDrop(num, target, d);
+      }
+    });
+    return d;
+  }
+
+  function setupDropZone(zone){
+    zone.addEventListener('dragover', e=>{ e.preventDefault(); zone.classList.add('over'); });
+    zone.addEventListener('dragleave', ()=> zone.classList.remove('over'));
+    zone.addEventListener('drop', e=>{
+      e.preventDefault(); zone.classList.remove('over');
+      const val = parseInt(e.dataTransfer.getData('text/plain'),10);
+      const card = [...cardsWrap.children].find(c=> parseInt(c.dataset.value,10)===val);
+      if(card) attemptDrop(val, zone, card);
+    });
+  }
+
+  function attemptDrop(val, zone, cardEl){
+    const type = zone===factorDrop ? 'factor' : 'multiple';
+    const ok = (type==='factor') ? isFactor(val) : isMultiple(val);
+    tries++;
+
+    if(ok){
+      zone.appendChild(cardEl);
+      cardEl.draggable = false; cardEl.style.cursor='default';
+      score++; ding(); showToast('✅ 放對了！');
+      updateTopBars(); checkFinish();
+    }else{
+      wrongs++; wrongMap[val] = (wrongMap[val]||0) + 1;
+      buzz(); showToast('❌ 放錯囉，再想想！');
+      if(cardEl.parentElement !== cardsWrap) cardsWrap.appendChild(cardEl);
+      zone.animate([{transform:'translateX(0)'},{transform:'translateX(-4px)'},{transform:'translateX(4px)'},{transform:'translateX(0)'}],{duration:220});
+      if(navigator.vibrate) navigator.vibrate(80);
+      updateTopBars();
+    }
+  }
+
+  function checkFinish(){
+    if(score === deck.length){
+      progressText.textContent = '太棒了！你已經把因數與倍數分得清清楚楚 🎉';
+      confettiBurst();
+      buildReport();
+    }
+  }
+
+  function resetGame(){
+    cardsWrap.innerHTML=''; factorDrop.innerHTML=''; multipleDrop.innerHTML='';
+    deck.forEach(n=> cardsWrap.appendChild(makeCard(n)));
+    resetStats();
+    report.style.display='none';
+    review.style.display='none'; reviewChips.innerHTML='';
+    showToast('牌組已重置');
+  }
+
+  // 啟用 drop 區
+  setupDropZone(factorDrop); setupDropZone(multipleDrop);
+
+  // 初始
+  N = parseInt(nInput.value,10); nShow.textContent = N;
+  document.getElementById('factorCountVal').textContent = `${factorCount} 張`;
+  document.getElementById('maxMultipleVal').textContent = `${maxK} 倍`;
+  deck = generateDeck(N, factorCount, maxK); resetGame();
+</script>
+</body>
+</html>
