@@ -3,11 +3,18 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>因數與倍數的家庭關係</title>
+<title>因數與倍數的家庭關係（彩虹成對上色）</title>
 <style>
   :root{
     --bg:#0f172a; --card:#111827; --ink:#e5e7eb; --muted:#94a3b8; --accent:#22d3ee; --main:#facc15;
-    --red:#fca5a5; --red-b:#ef4444; --green:#86efac; --green-b:#22c55e; --solo:#fde68a;
+    --solo:#fde68a;
+    /* 彩虹配色（文字色 / 邊框主色 / 內陰影） */
+    --c0:#22d3ee; --c0b:#06b6d4;
+    --c1:#f9a8d4; --c1b:#ec4899;
+    --c2:#fbbf24; --c2b:#f59e0b;
+    --c3:#86efac; --c3b:#22c55e;
+    --c4:#93c5fd; --c4b:#3b82f6;
+    --c5:#c4b5fd; --c5b:#8b5cf6;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:"Noto Sans TC",ui-sans-serif,system-ui,Arial;background:var(--bg);color:var(--ink);display:flex;justify-content:center;min-height:100vh}
@@ -31,10 +38,18 @@
   .pill.show{animation:rise .5s forwards}
   @keyframes rise{to{opacity:1;transform:translateY(0)}}
 
-  /* 成對高亮 */
-  .pair-red{color:var(--red); border-color:var(--red-b); box-shadow:0 0 0 2px rgba(239,68,68,.35) inset}
-  .pair-green{color:var(--green); border-color:var(--green-b); box-shadow:0 0 0 2px rgba(34,197,94,.35) inset}
+  /* 彩虹成對高亮（六色循環） */
+  .pair-c0{color:var(--c0); border-color:var(--c0b); box-shadow:0 0 0 2px color-mix(in oklab, var(--c0b) 40%, transparent) inset}
+  .pair-c1{color:var(--c1); border-color:var(--c1b); box-shadow:0 0 0 2px color-mix(in oklab, var(--c1b) 40%, transparent) inset}
+  .pair-c2{color:var(--c2); border-color:var(--c2b); box-shadow:0 0 0 2px color-mix(in oklab, var(--c2b) 40%, transparent) inset}
+  .pair-c3{color:var(--c3); border-color:var(--c3b); box-shadow:0 0 0 2px color-mix(in oklab, var(--c3b) 40%, transparent) inset}
+  .pair-c4{color:var(--c4); border-color:var(--c4b); box-shadow:0 0 0 2px color-mix(in oklab, var(--c4b) 40%, transparent) inset}
+  .pair-c5{color:var(--c5); border-color:var(--c5b); box-shadow:0 0 0 2px color-mix(in oklab, var(--c5b) 40%, transparent) inset}
   .pair-solo{color:#854d0e; background:#1f2937; border-color:#eab308; box-shadow:0 0 0 2px rgba(234,179,8,.35) inset}
+
+  .legend{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+  .legend .dot{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .legend .sw{width:14px;height:14px;border-radius:999px;border:2px solid currentColor}
 
   .hint{min-height:32px;margin-top:4px;text-align:center;color:var(--muted)}
   .hint .badge{display:inline-block;background:#0ea5e9;color:#06202a;border-radius:999px;padding:2px 8px;font-weight:900;margin-right:6px}
@@ -74,6 +89,17 @@
       <div class="main-number" id="mainNum">12</div>
       <div class="arrow down"></div>
       <div class="area" id="factorsArea"></div>
+
+      <!-- 彩虹配色圖例（因數成對） -->
+      <div class="legend" id="legend" aria-hidden="true" style="display:none">
+        <span class="dot" style="color:var(--c0)"><span class="sw"></span>一對</span>
+        <span class="dot" style="color:var(--c1)"><span class="sw"></span>一對</span>
+        <span class="dot" style="color:var(--c2)"><span class="sw"></span>一對</span>
+        <span class="dot" style="color:var(--c3)"><span class="sw"></span>一對</span>
+        <span class="dot" style="color:var(--c4)"><span class="sw"></span>一對</span>
+        <span class="dot" style="color:var(--c5)"><span class="sw"></span>一對</span>
+      </div>
+
       <div class="arrow up"></div>
       <div class="area" id="multiplesArea"></div>
       <div class="hint" id="hint"></div>
@@ -121,6 +147,7 @@ const factorsArea = document.getElementById('factorsArea');
 const multiplesArea = document.getElementById('multiplesArea');
 const hint = document.getElementById('hint');
 const summary = document.getElementById('summary');
+const legend = document.getElementById('legend');
 
 /* 老師模式控制 */
 const toggleSettings = document.getElementById('toggleSettings');
@@ -170,21 +197,25 @@ function showNumbers(area, list) {
   });
 }
 
-/* 因數：兩兩配對上色（紅/綠交錯；平方數中間金色） */
+/* 因數：兩兩配對上色（六色循環；平方數中間金色） */
+const PAIR_CLASSES = ['pair-c0','pair-c1','pair-c2','pair-c3','pair-c4','pair-c5'];
 function highlightFactorPairs(n){
   const pills = [...factorsArea.querySelectorAll('.pill')].map(el=>({el, val: parseInt(el.dataset.value,10)}));
   if(pills.length===0) return;
-  let i=0, j=pills.length-1, toggle=false;
+  // 按值排序以防 DOM 順序被打亂（正常已是遞增）
+  pills.sort((a,b)=>a.val-b.val);
+  let i=0, j=pills.length-1, k=0;
   while(i<j){
-    const cls = toggle ? 'pair-green' : 'pair-red';
+    const cls = PAIR_CLASSES[k % PAIR_CLASSES.length];
     pills[i].el.classList.add(cls);
     pills[j].el.classList.add(cls);
-    toggle = !toggle;
-    i++; j--;
+    i++; j--; k++;
   }
   if(i===j){ // 平方數的中間那顆
     pills[i].el.classList.add('pair-solo');
   }
+  // 顯示圖例
+  legend.style.display = 'flex';
 }
 
 function showHint(msg){
@@ -196,19 +227,19 @@ function showHint(msg){
 factorsBtn.addEventListener('click', async ()=>{
   summary.hidden = true; setN();
   multiplesArea.innerHTML = '';
-  hint.textContent = '';
+  hint.textContent = ''; legend.style.display='none';
   const n = N();
   const list = getFactors(n);
   await showNumbers(factorsArea, list);
   highlightFactorPairs(n);
   const isSquare = Number.isInteger(Math.sqrt(n));
-  showHint(`因數<b>成對出現</b>：小×大＝<b>${n}</b>。<span style="color:#fca5a5;font-weight:900">紅色</span>是一對，<span style="color:#86efac;font-weight:900">綠色</span>是另一對${isSquare?'；平方數中間那顆以<b>金色</b>標示。':'。'}`);
+  showHint(`因數<b>成對出現</b>：小×大＝<b>${n}</b>。彩色框表示「同色為一對」${isSquare?'；平方數中間那顆以<b>金色</b>標示。':'。'}`);
 });
 
 /* 事件：顯示倍數 */
 multiplesBtn.addEventListener('click', async ()=>{
   summary.hidden = true; setN();
-  factorsArea.innerHTML = '';
+  factorsArea.innerHTML = ''; legend.style.display='none';
   hint.textContent = '';
   const n = N();
   await showNumbers(multiplesArea, getMultiples(n, multiplesCount));
@@ -217,7 +248,7 @@ multiplesBtn.addEventListener('click', async ()=>{
 
 /* 事件：總結圖卡 */
 summaryBtn.addEventListener('click', ()=>{
-  summary.hidden = false;
+  summary.hidden = false; legend.style.display='none';
   showHint('下表把「祖先 vs. 後代、大小與數量」一次整理給你。');
 });
 
@@ -227,6 +258,7 @@ clearBtn.addEventListener('click', ()=>{
   multiplesArea.innerHTML = '';
   hint.textContent = '';
   summary.hidden = true;
+  legend.style.display='none';
 });
 
 /* 老師模式：開關與同步值 */
